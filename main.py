@@ -44,9 +44,18 @@ def transform_file():
     doc = DocxTemplate(file_path)
     context = {key: request.form[key] for key in request.form if key != 'file_path' and key != 'fileName'}
     doc.render(context)
-    output_docx = os.path.join(app.config['UPLOAD_FOLDER'], f"{request.form['fileName']}.docx")
-    doc.save(output_docx)
-    convert(output_docx, os.path.join(app.config['UPLOAD_FOLDER'], f"{request.form['fileName']}.pdf"))
+
+    # Save the rendered document temporarily
+    temp_docx = os.path.join(app.config['UPLOAD_FOLDER'], "temp_output.docx")
+    doc.save(temp_docx)
+
+    # Convert the temporary .docx to PDF
+    output_pdf = os.path.join(app.config['UPLOAD_FOLDER'], f"{request.form['fileName']}.pdf")
+    convert(temp_docx, output_pdf)
+
+    # Delete the temporary .docx file
+    os.remove(temp_docx)
+
     return redirect(url_for('home_page'))
 
 if __name__ == "__main__":
