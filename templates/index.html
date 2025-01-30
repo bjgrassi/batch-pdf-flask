@@ -1,14 +1,41 @@
-<main role="main">
-  <section class="jumbotron text-center">
-    <div class="container">
-      <h1 class="jumbotron-heading">Batch PDF</h1>
-      <p class="lead text-muted">Insert data into template && transform .docx to .pdf</p>
-      <p>
-        <form method="post" enctype="multipart/form-data">
-            <button name="template" type="submit" class="btn btn-primary btn-block">Transform template</button>
-            <button name="transform" type="submit" class="btn btn-primary btn-block">.DOCX to .PDF</button>
-        </form>
-      </p>
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Batch PDF</title>
+</head>
+
+<body>
+  <div class="container">
+    <h1>Batch PDF</h1>
+    <form method="POST" enctype="multipart/form-data">
+      <input type="file" name="file" accept=".docx" required>
+      <button type="submit">Upload</button>
+    </form>
+    {% if file_name %}
+    <p>Uploaded file: <strong>{{ file_name }}</strong></p>
+    {% endif %}
+    {% if placeholders %}
+    <div id="result">
+      <h1>Fill in the Template Variables</h1>
+      <form method="POST" action="/transform">
+        <input type="hidden" name="file_path" value="{{ file_path }}">
+        {% for placeholder in placeholders %}
+        <label>{{ placeholder }}:</label>
+        <input type="text" name="{{ placeholder }}" required><br>
+        {% endfor %}
+        <p>Choose the file name</p>
+        <input type="text" name="fileName" required><br>
+        <button type="submit">Save File</button>
+      </form>
     </div>
-  </section>
-</main>
+    {% else %}
+    <p>No placeholders found in the document.</p>
+    {% endif %}
+  </div>
+</body>
+
+</html>
