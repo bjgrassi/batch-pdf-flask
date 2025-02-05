@@ -1,0 +1,118 @@
+:root {
+  --primary-color: #539ee9;
+  --secondary-color: #000000;
+  --hover-color: #c95353;
+}
+* {
+  padding: 0;
+  margin: 0;
+  box-sizing: border-box;
+}
+html {
+  font: 62.5%;
+}
+
+body {
+  font-size: 1rem;
+}
+ul{
+    list-style: none;
+}
+a{
+    text-decoration: none;
+    color: black;
+}
+header {
+  width: 80%;
+  margin: auto;
+  height: 15vh;
+}
+.navbar {
+    padding-top: 15px;
+  display: flex;
+  justify-content: space-between;
+}
+.nav-links {
+  display: flex;
+}
+.nav-links li{
+    padding-right: 15px;
+    :hover{
+        color: var(--primary-color);
+    }
+}
+
+.logo {
+  color: var(--primary-color);
+  font-family: Verdana, Geneva, Tahoma, sans-serif;
+  font-size: 2rem;
+}
+
+
+.doc-form {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+}
+
+/* File Drop Area */
+.file-drop-area {
+    width: 300px;
+    height: 400px;
+    border: 2px dashed #ccc;
+    border-radius: 10px;
+    text-align: center;
+    padding: 20px;
+    cursor: pointer;
+    background: white;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    transition: border-color 0.3s ease-in-out;
+}
+
+/* DOC/DOCX Icon */
+.file-icon {
+    width: 80px;
+    height: auto;
+    margin-bottom: 15px;
+}
+
+.file-drop-area p {
+    font-size: 16px;
+    color: black;
+}
+
+.click-text {
+    font-weight: bold;
+    color: #539ee9;
+    cursor: pointer;
+}
+
+/* Hover Effects */
+.file-drop-area:hover {
+    border-color: #539ee9;
+}
+
+/* Hidden File Input */
+input[type="file"] {
+    display: none;
+}
+
+/* Upload Button */
+button {
+    padding: 10px 20px;
+    background-color: #539ee9;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 16px;
+    transition: background-color 0.3s;
+}
+
+button:hover {
+    background-color: #407bbf;
+}
