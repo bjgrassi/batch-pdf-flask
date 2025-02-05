@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link
+      href="{{url_for('static', filename='style/style.css')}}"
+      rel="stylesheet"
+    />
+    <title>Batch PDF</title>
+  </head>
+
+  <body>
+    {% include 'header.html' %}
+    <main>
+      <div class="sidebar">
+        {% if file_name %}
+        <p>Uploaded file: <strong>{{ file_name }}</strong></p>
+        {% endif %} {% if placeholders %}
+        <div id="result">
+          <h2>Template Data</h2>
+          <form id="placeholderForm" method="POST" action="/transform">
+            <input type="hidden" name="file_path" value="{{ file_path }}" />
+            {% for placeholder in placeholders %}
+            <label>{{ placeholder }}:</label>
+            <input type="text" name="{{ placeholder }}" required /><br />
+            {% endfor %}
+            <p>Choose the file name</p>
+            <input type="text" name="fileName" required /><br />
+          </form>
+          <button type="submit" id="submitButton">Save File</button>
+        </div>
+        {% else %}
+        <p>No placeholders found in the document.</p>
+        {% endif %}
+      </div>
+      <div class="content">
+        <h2>Your document</h2>
+        <div class="canvas">{{ html_content|safe }}</div>
+      </div>
+    </main>
+
+    <script>
+      document
+        .getElementById("submitButton")
+        .addEventListener("click", function () {
+          console.log("Submit button clicked!"); // Debugging: Check if this prints in the console
+          document.getElementById("placeholderForm").submit();
+        });
+    </script>
+  </body>
+</html>

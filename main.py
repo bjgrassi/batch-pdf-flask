@@ -24,16 +24,35 @@ def extract_placeholders_from_docx(doc_path):
         print(f"Error loading document: {e}")
     
     return list(placeholders)
+from docxtpl import DocxTemplate
+import os
+
+def docx_to_html(file_path):
+    doc = DocxTemplate(file_path)
+    docx_obj = doc.get_docx()
+    html_content = ""
+    for para in docx_obj.paragraphs:
+        html_content += f"<p>{para.text}</p>"
+
+    return html_content
+
 
 @app.route("/", methods=['GET', 'POST'])
 def home_page():
+    success_message = request.args.get('success', None)
+    return render_template('index.html', success_message=success_message)
+
+
+@app.route("/dashboard", methods=['GET', 'POST'])
+def dashboard():
     if request.method == 'POST':
         file = request.files['file']
         if file and file.filename.endswith('.docx'):
             file_path = os.path.join(app.config['UPLOAD_FOLDER'], file.filename)
             file.save(file_path)
             placeholders = extract_placeholders_from_docx(file_path)
-            return render_template('index.html', placeholders=placeholders, file_path=file_path, file_name=file.filename)
+            html_content = docx_to_html(file_path) 
+            return render_template('dashboard.html', placeholders=placeholders, file_path=file_path, file_name=file.filename, html_content=html_content)
         else:
             return "Invalid file format. Please upload a .docx file.", 400
     return render_template('index.html')

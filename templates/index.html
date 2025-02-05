@@ -15,29 +15,28 @@
     {% include 'header.html' %}
 
     <div class="container">
-      <form class="doc-form" method="POST" enctype="multipart/form-data">
-        <input type="file" name="file" accept=".docx" required />
+      <form class="doc-form" method="POST" action="/dashboard" enctype="multipart/form-data">
+        <label for="file" class="file-drop-area">
+          <img
+            src="{{ url_for('static', filename='assets/doc-icon.png') }}"
+            alt="DOC Icon"
+            class="file-icon"
+          />
+          <p>
+            Drag and drop your Word file here<br />or
+            <span class="click-text">click to select one</span>
+          </p>
+          <input
+            type="file"
+            id="file"
+            name="file"
+            accept=".doc, .docx"
+            required
+            hidden
+          />
+        </label>
         <button type="submit">Upload</button>
       </form>
-      {% if file_name %}
-      <p>Uploaded file: <strong>{{ file_name }}</strong></p>
-      {% endif %} {% if placeholders %}
-      <div id="result">
-        <h1>Fill in the Template Variables</h1>
-        <form method="POST" action="/transform">
-          <input type="hidden" name="file_path" value="{{ file_path }}" />
-          {% for placeholder in placeholders %}
-          <label>{{ placeholder }}:</label>
-          <input type="text" name="{{ placeholder }}" required /><br />
-          {% endfor %}
-          <p>Choose the file name</p>
-          <input type="text" name="fileName" required /><br />
-          <button type="submit">Save File</button>
-        </form>
-      </div>
-      {% else %}
-      <p>No placeholders found in the document.</p>
-      {% endif %}
     </div>
   </body>
 </html>
