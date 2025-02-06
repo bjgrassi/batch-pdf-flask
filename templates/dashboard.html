@@ -17,9 +17,12 @@
       <div class="sidebar">
         {% if file_name %}
         <p>Uploaded file: <strong>{{ file_name }}</strong></p>
-        {% endif %} {% if placeholders %}
+        {% endif %} 
+        
+        {% if placeholders %}
         <div id="result">
           <h2>Template Data</h2>
+
           <form id="placeholderForm" method="POST" action="/transform">
             <input type="hidden" name="file_path" value="{{ file_path }}" />
             {% for placeholder in placeholders %}
@@ -29,7 +32,7 @@
             <p>Choose the file name</p>
             <input type="text" name="fileName" required /><br />
           </form>
-          <button type="submit" id="submitButton">Save File</button>
+          <button type="button" id="submitButton">Save File</button>
         </div>
         {% else %}
         <p>No placeholders found in the document.</p>
@@ -42,12 +45,66 @@
     </main>
 
     <script>
-      document
-        .getElementById("submitButton")
-        .addEventListener("click", function () {
-          console.log("Submit button clicked!"); // Debugging: Check if this prints in the console
-          document.getElementById("placeholderForm").submit();
-        });
+      document.getElementById("submitButton").addEventListener("click", async function () {
+        const form = document.getElementById('placeholderForm');
+        const formData = new FormData(form);
+
+         // Log form data for debugging
+        for (let [key, value] of formData.entries()) {
+          console.log(key, value);
+        }
+        try {
+          // Send the form data to the Flask backend
+          const response = await fetch('/post-doc-form', {
+            method: 'POST',
+            body: formData,
+          });
+
+          if (!response.ok) {
+            throw new Error('Failed to transform file');
+          }
+
+          // Get the PDF file as a Blob
+          const pdfBlob = await response.blob();
+
+          // Check if the browser supports showSaveFilePicker
+          if (window.showSaveFilePicker) {
+            try {
+              // Use showSaveFilePicker for Chrome and Edge
+              const handle = await window.showSaveFilePicker({
+                suggestedName: formData.get('fileName') + '.pdf',
+                types: [{
+                  description: 'PDF file',
+                  accept: { 'application/pdf': ['.pdf'] },
+                }],
+              });
+
+              // Create a writable stream and write the PDF Blob
+              const writableStream = await handle.createWritable();
+              await writableStream.write(pdfBlob);
+              await writableStream.close();
+            } catch (err) {
+              console.error("Error saving file:", err);
+            }
+          } else {
+            // Fallback for Firefox and other browsers
+            const url = window.URL.createObjectURL(pdfBlob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = formData.get('fileName') + '.pdf';  // Use the provided filename
+            document.body.appendChild(a);
+            a.click();
+
+            // Clean up
+            window.URL.revokeObjectURL(url);
+            document.body.removeChild(a);
+          }
+
+          console.log('PDF saved successfully!');
+        } catch (error) {
+          console.error('Error:', error);
+        }
+      });
     </script>
   </body>
 </html>
