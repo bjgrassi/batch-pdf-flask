@@ -1,9 +1,35 @@
-<header>
-    <nav class="navbar">
-        <h1 class="logo">Batch PDF</h1>
-        <ul class="nav-links">
-            <li><a href="/">How it works</a></li>
-            <li><a href="/">About</a></li>
-        </ul>
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@1.0.2/css/bulma.min.css">
+    <!-- <link rel="stylesheet" href="{{ url_for('static', filename='css/custom.css') }}"> -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='style/style.css') }}" />
+
+    <title>Batch PDF</title>
+</head>
+
+<body>
+    <nav class="navbar" role="navigation" aria-label="main navigation">
+        <div class="navbar-brand">
+            <h1 class="navbar-item logo">Batch PDF</h1>
+        </div>
+
+        <div id="navbarBasicExample" class="navbar-menu">
+            <div class="navbar-end">
+                <a class="navbar-item">
+                    How it works
+                </a>
+                <a class="navbar-item">
+                    About
+                </a>
+            </div>
+        </div>
     </nav>
-</header>
+    {% block body %}{% endblock %}
+</body>
+
+</html>

@@ -9,6 +9,8 @@ app = Flask(__name__)
 app.config['UPLOAD_FOLDER'] = 'uploads'
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 
+file_path = ''
+
 # Extract placeholders like {{first_name}} from a .docx file.
 def extract_placeholders_from_docx(doc_path):
     try:
@@ -47,11 +49,17 @@ def dashboard():
     if request.method == 'POST':
         file = request.files['file']
         if file and file.filename.endswith('.docx'):
+            batch_quantity = int(request.form.get('batchQuantity', 1))
+            print(batch_quantity)
+            global file_path
             file_path = os.path.join(app.config['UPLOAD_FOLDER'], file.filename)
             file.save(file_path)
             placeholders = extract_placeholders_from_docx(file_path)
             html_content = docx_to_html(file_path) 
-            return render_template('dashboard.html', placeholders=placeholders, file_path=file_path, file_name=file.filename, html_content=html_content)
+            return render_template(
+                'dashboard.html', placeholders=placeholders, file_name=file.filename,
+                batch_quantity=batch_quantity, html_content=html_content
+            )
         else:
             return "Invalid file format. Please upload a .docx file.", 400
     return render_template('index.html')
@@ -62,30 +70,30 @@ def transform_file():
         # Initialize the COM library
         pythoncom.CoInitialize()
 
-        file_path = request.form['file_path']
-        print(f"File path: {file_path}")  # Debugging: Log the file path
+        data = request.get_json()
+        form_data_array = data['formDataArray']
+        file_name = data['fileName']
+        print(file_name)
 
-        # Ensure the file exists
-        if not os.path.exists(file_path):
-            raise FileNotFoundError(f"File not found: {file_path}")
-        
-        # Fill the placeholders
-        doc = DocxTemplate(file_path)
-        context = {key: request.form[key] for key in request.form if key != 'file_path' and key != 'fileName'}
-        print(f"Context: {context}")  # Debugging: Log the context data
-        doc.render(context)
+        pdf_files = []
 
-        # Save the rendered document temporarily
-        temp_docx = os.path.join(app.config['UPLOAD_FOLDER'], "temp_output.docx")
-        doc.save(temp_docx)
-        print(f"Temporary DOCX saved: {temp_docx}")  # Debugging: Log the temp DOCX path
+        for index, form_data in enumerate(form_data_array):
+            # Fill the placeholders
+            doc = DocxTemplate(file_path)
+            doc.render(form_data)
 
-        # Convert the temporary .docx to PDF
-        output_pdf = os.path.join(app.config['UPLOAD_FOLDER'], f"{request.form['fileName']}.pdf")
-        convert(temp_docx, output_pdf)
-        print(f"PDF saved: {output_pdf}")  # Debugging: Log the PDF path
+            # Save the rendered document temporarily
+            temp_docx = os.path.join(app.config['UPLOAD_FOLDER'], f"{index}_{file_name}.docx")
+            doc.save(temp_docx)
 
-        response = make_response(send_file(output_pdf, mimetype='application/pdf'))
+            # Convert the temporary .docx to PDF
+            output_pdf = os.path.join(app.config['UPLOAD_FOLDER'], f"{index}_{file_name}.pdf")
+            convert(temp_docx, output_pdf)
+            pdf_files.append(output_pdf)
+
+        # Combine PDFs if needed or send them individually
+        # For simplicity, we'll just send the first PDF
+        response = make_response(send_file(pdf_files[0], mimetype='application/pdf'))
         response.headers['Cache-Control'] = 'public, max-age=31536000'  # Cache for 1 year
         response.headers['Expires'] = '31536000'  # Expires in 1 year
 
@@ -98,7 +106,10 @@ def transform_file():
     finally:
         # Uninitialize the COM library
         pythoncom.CoUninitialize()
-        os.remove(temp_docx)  # Delete the .docx
+        for index in range(len(form_data_array)):
+            temp_docx = os.path.join(app.config['UPLOAD_FOLDER'], f"temp_output_{index}.docx")
+            if os.path.exists(temp_docx):
+                os.remove(temp_docx)  # Delete the .docx
 
 if __name__ == "__main__":
     app.run(debug=True)

@@ -1,110 +1,160 @@
-<!DOCTYPE html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <link
-      href="{{url_for('static', filename='style/style.css')}}"
-      rel="stylesheet"
-    />
-    <title>Batch PDF</title>
-  </head>
+{% extends "header.html" %}
+{% block body %}
+<div class="columns m-3 is-mobile">
+  <div class="column is-4 sidebar">
+    {% if file_name %}
+    <p class="subtitle is-5">Uploaded file: <strong>{{ file_name }}</strong></p>
+    {% endif %}
 
-  <body>
-    {% include 'header.html' %}
-    <main>
-      <div class="sidebar">
-        {% if file_name %}
-        <p>Uploaded file: <strong>{{ file_name }}</strong></p>
-        {% endif %} 
-        
-        {% if placeholders %}
-        <div id="result">
-          <h2>Template Data</h2>
+    {% if placeholders %}
+    <div id="result">
+      <form id="placeholderForm" data-batch-quantity="{{ batch_quantity | default(1) }}" method="POST"
+        action="/post-doc-form">
+        {% for i in range(batch_quantity) %}
+        <div id="{{ i }}_form" class="form-instance" {% if i !=0 %}style="display: none;" {% endif %}>
+          <p class="subtitle is-3">File {{ i + 1 }}</p>
 
-          <form id="placeholderForm" method="POST" action="/transform">
-            <input type="hidden" name="file_path" value="{{ file_path }}" />
-            {% for placeholder in placeholders %}
-            <label>{{ placeholder }}:</label>
-            <input type="text" name="{{ placeholder }}" required /><br />
-            {% endfor %}
-            <p>Choose the file name</p>
-            <input type="text" name="fileName" required /><br />
-          </form>
-          <button type="button" id="submitButton">Save File</button>
+          {% for placeholder in placeholders %}
+          <div class="field">
+            <label class="label">{{ placeholder }}</label>
+            <div class="control">
+              <input class="input is-small" type="text" name="{{ i }}_{{ placeholder }}" required>
+            </div>
+          </div>
+          {% endfor %}
+
+          <button
+            type="button"
+            id="previousButton"
+            class="button is-info mt-3"
+            onclick="showSelectedForm('previous')"
+            {% if i ==0 %}disabled{% endif %}>Previous</button>
+          <button
+            type="button"
+            id="nextButton"
+            class="button is-info mt-3"
+            onclick="showSelectedForm('next')"
+            {% if i ==batch_quantity - 1 %}disabled{% endif %}>Next</button>
         </div>
-        {% else %}
-        <p>No placeholders found in the document.</p>
-        {% endif %}
-      </div>
-      <div class="content">
-        <h2>Your document</h2>
-        <div class="canvas">{{ html_content|safe }}</div>
-      </div>
-    </main>
+        {% endfor %}
 
-    <script>
-      document.getElementById("submitButton").addEventListener("click", async function () {
-        const form = document.getElementById('placeholderForm');
-        const formData = new FormData(form);
+        <div class="field mt-2">
+          <label class="label">Choose the file name</label>
+          <div class="control">
+            <input class="input is-small" type="text" name="fileName" required>
+          </div>
+        </div>
+      </form>
 
-         // Log form data for debugging
-        for (let [key, value] of formData.entries()) {
-          console.log(key, value);
+      <button type="button" id="submitButton" class="button is-info mt-3" onclick="saveFile(this)">Save File</button>
+    </div>
+    {% else %}
+    <p>No placeholders found in the document.</p>
+    {% endif %}
+  </div>
+  <div class="column">
+    <p class="subtitle is-4">Your document's preview</p>
+    <div class="canvas">{{ html_content|safe }}</div>
+  </div>
+</div>
+
+<script>
+  let currentFormIndex = 0;
+  const totalForms = document.getElementById('placeholderForm').dataset.batchQuantity
+
+  function showSelectedForm(action) {
+    if (currentFormIndex < totalForms) {
+      document.getElementById(`${currentFormIndex}_form`).style.display = 'none';
+
+      if (action == 'next') {
+        currentFormIndex++;
+      } else {
+        currentFormIndex--;
+      }
+      
+      document.getElementById(`${currentFormIndex}_form`).style.display = 'block';
+    }
+  }
+
+  async function saveFile(element) {
+    element.classList.add('is-loading');
+    const form = document.getElementById('placeholderForm');
+    const formDataArray = [];
+    const formData = new FormData(form);
+    const fileName = formData.get('fileName');
+
+    // Loop through each form instance
+    for (let i = 0; i < totalForms; i++) {
+      const formInstanceData = {};
+
+      // Collect data for each form instance
+      for (let [key, value] of formData.entries()) {
+        if (key.includes(`${i}_`) && key !== 'fileName') {
+          key = key.replace(`${i}_`, "");
+          formInstanceData[key] = value;
         }
-        try {
-          // Send the form data to the Flask backend
-          const response = await fetch('/post-doc-form', {
-            method: 'POST',
-            body: formData,
-          });
+      }
 
-          if (!response.ok) {
-            throw new Error('Failed to transform file');
-          }
+      formDataArray.push(formInstanceData);
+    }
 
-          // Get the PDF file as a Blob
-          const pdfBlob = await response.blob();
-
-          // Check if the browser supports showSaveFilePicker
-          if (window.showSaveFilePicker) {
-            try {
-              // Use showSaveFilePicker for Chrome and Edge
-              const handle = await window.showSaveFilePicker({
-                suggestedName: formData.get('fileName') + '.pdf',
-                types: [{
-                  description: 'PDF file',
-                  accept: { 'application/pdf': ['.pdf'] },
-                }],
-              });
-
-              // Create a writable stream and write the PDF Blob
-              const writableStream = await handle.createWritable();
-              await writableStream.write(pdfBlob);
-              await writableStream.close();
-            } catch (err) {
-              console.error("Error saving file:", err);
-            }
-          } else {
-            // Fallback for Firefox and other browsers
-            const url = window.URL.createObjectURL(pdfBlob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = formData.get('fileName') + '.pdf';  // Use the provided filename
-            document.body.appendChild(a);
-            a.click();
-
-            // Clean up
-            window.URL.revokeObjectURL(url);
-            document.body.removeChild(a);
-          }
-
-          console.log('PDF saved successfully!');
-        } catch (error) {
-          console.error('Error:', error);
-        }
+    console.warn(fileName);
+    try {
+      // Send the form data to the Flask backend
+      const response = await fetch('/post-doc-form', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ formDataArray, fileName }),
       });
-    </script>
-  </body>
-</html>
+
+      if (!response.ok) {
+        throw new Error('Failed to transform file');
+      }
+
+      // Get the PDF file as a Blob
+      const pdfBlob = await response.blob();
+
+      // // Check if the browser supports showSaveFilePicker
+      // if (window.showSaveFilePicker) {
+      //   try {
+      //     // Use showSaveFilePicker for Chrome and Edge
+      //     const handle = await window.showSaveFilePicker({
+      //       suggestedName: formData.get('fileName') + '.pdf',
+      //       types: [{
+      //         description: 'PDF file',
+      //         accept: { 'application/pdf': ['.pdf'] },
+      //       }],
+      //     });
+
+      //     // Create a writable stream and write the PDF Blob
+      //     const writableStream = await handle.createWritable();
+      //     await writableStream.write(pdfBlob);
+      //     await writableStream.close();
+      //   } catch (err) {
+      //     console.error("Error saving file:", err);
+      //   }
+      // } else {
+      //   // Fallback for Firefox and other browsers
+      //   const url = window.URL.createObjectURL(pdfBlob);
+      //   const a = document.createElement('a');
+      //   a.href = url;
+      //   a.download = formData.get('fileName') + '.pdf';  // Use the provided filename
+      //   document.body.appendChild(a);
+      //   a.click();
+
+      //   // Clean up
+      //   window.URL.revokeObjectURL(url);
+      //   document.body.removeChild(a);
+      // }
+
+      // console.log('PDF saved successfully!');
+    } catch (error) {
+      console.error('Error:', error);
+    } finally {
+      element.classList.remove('is-loading');
+    }
+  };
+</script>
+{% endblock %}
