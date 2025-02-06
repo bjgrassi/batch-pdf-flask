@@ -98,7 +98,6 @@
       formDataArray.push(formInstanceData);
     }
 
-    console.warn(fileName);
     try {
       // Send the form data to the Flask backend
       const response = await fetch('/post-doc-form', {
@@ -113,48 +112,48 @@
         throw new Error('Failed to transform file');
       }
 
-      // Get the PDF file as a Blob
-      const pdfBlob = await response.blob();
+      // Get the ZIP file as a Blob
+      const zipBlob = await response.blob();
 
-      // // Check if the browser supports showSaveFilePicker
-      // if (window.showSaveFilePicker) {
-      //   try {
-      //     // Use showSaveFilePicker for Chrome and Edge
-      //     const handle = await window.showSaveFilePicker({
-      //       suggestedName: formData.get('fileName') + '.pdf',
-      //       types: [{
-      //         description: 'PDF file',
-      //         accept: { 'application/pdf': ['.pdf'] },
-      //       }],
-      //     });
+      // Check if the browser supports showSaveFilePicker
+      if (window.showSaveFilePicker) {
+        try {
+          // Use showSaveFilePicker for Chrome and Edge
+          const handle = await window.showSaveFilePicker({
+            suggestedName: fileName + '.zip',
+            types: [{
+              description: 'ZIP file',
+              accept: { 'application/zip': ['.zip'] },
+            }],
+          });
 
-      //     // Create a writable stream and write the PDF Blob
-      //     const writableStream = await handle.createWritable();
-      //     await writableStream.write(pdfBlob);
-      //     await writableStream.close();
-      //   } catch (err) {
-      //     console.error("Error saving file:", err);
-      //   }
-      // } else {
-      //   // Fallback for Firefox and other browsers
-      //   const url = window.URL.createObjectURL(pdfBlob);
-      //   const a = document.createElement('a');
-      //   a.href = url;
-      //   a.download = formData.get('fileName') + '.pdf';  // Use the provided filename
-      //   document.body.appendChild(a);
-      //   a.click();
+          // Create a writable stream and write the ZIP Blob
+          const writableStream = await handle.createWritable();
+          await writableStream.write(zipBlob);
+          await writableStream.close();
+        } catch (err) {
+          console.error("Error saving file:", err);
+        }
+      } else {
+        // Fallback for Firefox and other browsers
+        const url = window.URL.createObjectURL(zipBlob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = fileName + '.zip';  // Use the provided filename
+        document.body.appendChild(a);
+        a.click();
 
-      //   // Clean up
-      //   window.URL.revokeObjectURL(url);
-      //   document.body.removeChild(a);
-      // }
+        // Clean up
+        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+      }
 
-      // console.log('PDF saved successfully!');
+      console.warn('ZIP file saved successfully!');
     } catch (error) {
       console.error('Error:', error);
     } finally {
       element.classList.remove('is-loading');
     }
-  };
+  }
 </script>
 {% endblock %}

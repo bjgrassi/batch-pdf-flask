@@ -4,6 +4,7 @@ import os
 from docxtpl import DocxTemplate
 from docx2pdf import convert
 import pythoncom
+import zipfile
 
 app = Flask(__name__)
 app.config['UPLOAD_FOLDER'] = 'uploads'
@@ -91,14 +92,15 @@ def transform_file():
             convert(temp_docx, output_pdf)
             pdf_files.append(output_pdf)
 
-        # Combine PDFs if needed or send them individually
-        # For simplicity, we'll just send the first PDF
-        response = make_response(send_file(pdf_files[0], mimetype='application/pdf'))
-        response.headers['Cache-Control'] = 'public, max-age=31536000'  # Cache for 1 year
-        response.headers['Expires'] = '31536000'  # Expires in 1 year
+        # Create a ZIP file and add all PDFs to it
+        zipfile_name = os.path.join(app.config['UPLOAD_FOLDER'], f"{file_name}.zip")
+        with zipfile.ZipFile(zipfile_name, "w") as myzip:
+            for pdf_file in pdf_files:
+                # Add each PDF file to the ZIP archive
+                myzip.write(pdf_file, os.path.basename(pdf_file))
 
-        # Return the PDF file as a response
-        return response
+        # Send the ZIP file as a response
+        return send_file(zipfile_name, mimetype='application/zip', as_attachment=True, download_name=f"{file_name}.zip")
 
     except Exception as e:
         print(f"Error in transform_file: {e}")
@@ -106,10 +108,20 @@ def transform_file():
     finally:
         # Uninitialize the COM library
         pythoncom.CoUninitialize()
+
+        # Clean up temporary files
         for index in range(len(form_data_array)):
-            temp_docx = os.path.join(app.config['UPLOAD_FOLDER'], f"temp_output_{index}.docx")
+            temp_docx = os.path.join(app.config['UPLOAD_FOLDER'], f"{index}_{file_name}.docx")
             if os.path.exists(temp_docx):
                 os.remove(temp_docx)  # Delete the .docx
+
+            temp_pdf = os.path.join(app.config['UPLOAD_FOLDER'], f"{index}_{file_name}.pdf")
+            if os.path.exists(temp_pdf):
+                os.remove(temp_pdf)  # Delete the .pdf
+
+        # # Delete the ZIP file after sending it (optional)
+        # if os.path.exists(zipfile_name):
+        #     os.remove(zipfile_name)
 
 if __name__ == "__main__":
     app.run(debug=True)
