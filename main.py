@@ -4,7 +4,7 @@ import os
 from docxtpl import DocxTemplate
 from docx2pdf import convert
 import pythoncom
-import zipfile
+from utils.doc_to_html import docx_to_html
 
 app = Flask(__name__)
 app.config['UPLOAD_FOLDER'] = 'uploads'
@@ -23,20 +23,35 @@ def extract_placeholders_from_docx(doc_path):
         for para in docx_obj.paragraphs:
             matches = re.findall(r"{{(.*?)}}", para.text)
             placeholders.update(matches)
-    
+
+        for table in docx_obj.tables:
+            for row in table.rows:
+                for cell in row.cells:
+                    matches = re.findall(r"{{(.*?)}}", cell.text)
+                    placeholders.update(matches)
+
     except Exception as e:
         print(f"Error loading document: {e}")
     
     return list(placeholders)
 
-def docx_to_html(file_path):
-    doc = DocxTemplate(file_path)
-    docx_obj = doc.get_docx()
-    html_content = ""
-    for para in docx_obj.paragraphs:
-        html_content += f"<p>{para.text}</p>"
+# def docx_to_html(file_path):
+#     doc = DocxTemplate(file_path)
+#     docx_obj = doc.get_docx()
+#     html_content = ""
+#     for para in docx_obj.paragraphs:
+#         html_content += f"<p>{para.text}</p>"
 
-    return html_content
+#     for table in docx_obj.tables:
+#         html_content += "<table border='1'>"
+#         for row in table.rows:
+#             html_content += "<tr>"
+#             for cell in row.cells:
+#                 html_content += f"<td>{cell.text}</td>"
+#             html_content += "</tr>"
+#         html_content += "</table>"
+
+#     return html_content
 
 
 @app.route("/", methods=['GET', 'POST'])
@@ -70,8 +85,11 @@ def transform_file():
     try:
         # Initialize the COM library
         pythoncom.CoInitialize()
-
+        print('in post')
         data = request.get_json()
+        print(data)
+        print("data")
+
         form_data_array = data['formDataArray']
         file_name = data['fileName']
         print(file_name)
@@ -82,14 +100,23 @@ def transform_file():
             # Fill the placeholders
             doc = DocxTemplate(file_path)
             doc.render(form_data)
+            print(form_data)
+            print("form_data")
+
 
             # Save the rendered document temporarily
             temp_docx = os.path.join(app.config['UPLOAD_FOLDER'], f"{index}_{file_name}.docx")
             doc.save(temp_docx)
+            print("12")
+
 
             # Convert the temporary .docx to PDF
             output_pdf = os.path.join(app.config['UPLOAD_FOLDER'], f"{index}_{file_name}.pdf")
+            print("check12")
+
             convert(temp_docx, output_pdf)
+            print("check13")
+
             pdf_files.append(output_pdf)
 
         # Create a ZIP file and add all PDFs to it
