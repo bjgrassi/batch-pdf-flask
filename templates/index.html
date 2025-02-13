@@ -1,37 +1,64 @@
 {% extends "header.html" %}
 {% block body %}
-<div class="container">
-  <div class="columns is-mobile is-centered">
-    <form class="doc-form" method="POST" action="/dashboard" enctype="multipart/form-data">
+  <div class="columns is-6 is-mobile is-centered">
+    <form class="doc-form control" method="POST" action="/dashboard" enctype="multipart/form-data">
       <div class="column">
-        <label for="file" class="file-drop-area">
+        <label for="wordFile" class="file-drop-area">
           <img src="{{ url_for('static', filename='assets/doc-icon.png') }}" alt="DOC Icon" class="file-icon" />
           <p>
             Drag and drop your Word file here or <span class="click-text">click to select one</span>
           </p>
-          <input type="file" id="file" name="file" accept=".doc, .docx" required hidden />
+          <input type="file" id="wordFile" name="wordFile" accept=".doc, .docx" required hidden />
         </label>
       </div>
 
       <div class="column">
-        <div class="control">
-          <label for="batchQuantity">
-            Select how many files do you want to batch
+        <p>How do you want to fill the placeholders?</p>
+        <div class="radios">
+          <label class="radio">
+            <input type="radio" name="radioButton" value="manually" onclick="showSelectedView('manuallyView', 'excelView')"/>
+            Manually
           </label>
-          <input id="batchQuantity" name="batchQuantity" class="input" type="number" placeholder="Quantity" required />
+          <label class="radio">
+            <input type="radio" name="radioButton" value="excel" onclick="showSelectedView('excelView', 'manuallyView')"/>
+            Import Excel File
+          </label>
         </div>
       </div>
 
       <div class="column">
+        <div id="manuallyView" style="display: none;">
+          <label for="batchQuantity">
+            Select how many files do you want to batch
+          </label>
+          <input id="batchQuantity" name="batchQuantity" class="input" type="number" placeholder="Quantity" />
+        </div>
+
+        <div id="excelView" style="display: none;">
+          <label for="excelFile" class="">
+            <p>
+              Drag and drop your Excel file here or <span class="">click to select one</span>
+            </p>
+            <input type="file" id="excelFile" name="excelFile" accept=".xlsx, .csv" />
+          </label>
+        </div>
+    </div>
+
+      <div id="uploadColumn" class="column" style="display: none;">
         <button id="uploadDocument" class="button is-info" type="submit" onclick="showLoading(this)">
           Upload
         </button>
       </div>
     </form>
   </div>
-</div>
 
 <script>
+  function showSelectedView(idShow, idRemove) {
+    document.getElementById(idShow).style.display = 'block';
+    document.getElementById(idRemove).style.display = 'none';
+    document.getElementById('uploadColumn').style.display = 'block';
+  }
+
   function showLoading(element) {
     element.classList.add('is-loading');
   }

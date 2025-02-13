@@ -41,11 +41,6 @@
   border-color: var(--hover-color);
 }
 
-/* Hidden File Input */
-input[type="file"] {
-  display: none;
-}
-
 button.is-info {
   background-color: var(--primary-color);
 }

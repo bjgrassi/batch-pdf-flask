@@ -1,10 +1,11 @@
-from flask import Flask, render_template, request, redirect, url_for, send_file, make_response
+from flask import Flask, render_template, request, redirect, url_for, send_file, make_response, jsonify
 import re
 import os
 from docxtpl import DocxTemplate
 from docx2pdf import convert
 import pythoncom
 import zipfile
+import pandas as pd
 
 app = Flask(__name__)
 app.config['UPLOAD_FOLDER'] = 'uploads'
@@ -48,19 +49,33 @@ def home_page():
 @app.route("/dashboard", methods=['GET', 'POST'])
 def dashboard():
     if request.method == 'POST':
-        file = request.files['file']
-        if file and file.filename.endswith('.docx'):
-            batch_quantity = int(request.form.get('batchQuantity', 1))
-            print(batch_quantity)
+        wordFile = request.files['wordFile']
+        if wordFile and wordFile.filename.endswith('.docx'):
             global file_path
-            file_path = os.path.join(app.config['UPLOAD_FOLDER'], file.filename)
-            file.save(file_path)
+            file_path = os.path.join(app.config['UPLOAD_FOLDER'], wordFile.filename)
+            wordFile.save(file_path)
             placeholders = extract_placeholders_from_docx(file_path)
-            html_content = docx_to_html(file_path) 
-            return render_template(
-                'dashboard.html', placeholders=placeholders, file_name=file.filename,
-                batch_quantity=batch_quantity, html_content=html_content
-            )
+            html_content = docx_to_html(file_path)
+
+            if request.form['radioButton'] == 'manually':
+                batch_quantity = int(request.form.get('batchQuantity', 1))
+                return render_template(
+                    'dashboard.html', placeholders=placeholders, file_name=wordFile.filename,
+                    batch_quantity=batch_quantity, html_content=html_content
+                )
+            else:
+                excelFile = request.files['excelFile']
+                if excelFile and (excelFile.filename.endswith('.xlsx') or excelFile.filename.endswith('.csv')):
+                    excel_path = os.path.join(app.config['UPLOAD_FOLDER'], excelFile.filename)
+                    excelFile.save(excel_path)
+                    df = pd.read_excel(excel_path) if excelFile.filename.endswith('.xlsx') else pd.read_csv(excel_path)
+                    excel_array = df.to_dict(orient='records')
+                    return render_template(
+                        'dashboard.html', placeholders=placeholders, file_name=wordFile.filename,
+                        batch_quantity=len(df), html_content=html_content, excel_array=excel_array
+                    )
+                else:
+                    return "Invalid Excel file format. Please upload a .xlsx or .csv file.", 400
         else:
             return "Invalid file format. Please upload a .docx file.", 400
     return render_template('index.html')

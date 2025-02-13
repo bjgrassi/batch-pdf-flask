@@ -1,13 +1,13 @@
 {% extends "header.html" %}
 {% block body %}
-<div class="columns m-3 is-mobile">
+<div class="columns m-3 is-desktop">
   <div class="column is-4 sidebar">
     {% if file_name %}
     <p class="subtitle is-5">Uploaded file: <strong>{{ file_name }}</strong></p>
     {% endif %}
 
     {% if placeholders %}
-    <div id="result">
+    <div id="result" {% if isLoading %}class="skeleton-block" {% endif %}>
       <form id="placeholderForm" data-batch-quantity="{{ batch_quantity | default(1) }}" method="POST"
         action="/post-doc-form">
         {% for i in range(batch_quantity) %}
@@ -18,7 +18,11 @@
           <div class="field">
             <label class="label">{{ placeholder }}</label>
             <div class="control">
-              <input class="input is-small" type="text" name="{{ i }}_{{ placeholder }}" required>
+              <input class="input is-small"
+                type="text" 
+                name="{{ i }}_{{ placeholder }}"
+                {% if excel_array %}value="{{ excel_array[i][placeholder] }}" {% endif %}
+                required> 
             </div>
           </div>
           {% endfor %}
@@ -60,7 +64,7 @@
 
 <script>
   let currentFormIndex = 0;
-  const totalForms = document.getElementById('placeholderForm').dataset.batchQuantity
+  const totalForms = document.getElementById('placeholderForm').dataset.batchQuantity;
 
   function showSelectedForm(action) {
     if (currentFormIndex < totalForms) {
@@ -78,6 +82,7 @@
 
   async function saveFile(element) {
     element.classList.add('is-loading');
+    let isLoading = true;
     const form = document.getElementById('placeholderForm');
     const formDataArray = [];
     const formData = new FormData(form);
@@ -115,8 +120,20 @@
       // Get the ZIP file as a Blob
       const zipBlob = await response.blob();
 
+      // Feature detection. The API needs to be supported
+      // and the app not run in an iframe.
+      const supportsFileSystemAccess =
+        'showSaveFilePicker' in window &&
+        (() => {
+          try {
+            return window.self === window.top;
+          } catch {
+            return false;
+          }
+        })();
+
       // Check if the browser supports showSaveFilePicker
-      if (window.showSaveFilePicker) {
+      if (supportsFileSystemAccess) {
         try {
           // Use showSaveFilePicker for Chrome and Edge
           const handle = await window.showSaveFilePicker({
@@ -144,8 +161,10 @@
         a.click();
 
         // Clean up
-        window.URL.revokeObjectURL(url);
-        document.body.removeChild(a);
+        setTimeout(() => {
+          window.URL.revokeObjectURL(url);
+          document.body.removeChild(a);
+        }, 1000);
       }
 
       console.warn('ZIP file saved successfully!');
