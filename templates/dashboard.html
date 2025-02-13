@@ -4,14 +4,17 @@
   <div class="column is-3">
     <div class="card card-border">
       <div class="card-content">
-        {% if file_name %}
-        <p class="subtitle is-5">Uploaded file: <b><span class="has-text-info">{{ file_name }}</span></b></p>
-        {% endif %}
+        <div id="progressCard">
+          <p class="subtitle is-5">Transforming into PDFs and ziping files</span></b></p>
+          <progress id="progress" class="progress is-small is-info" max="100">50%</progress>
+        </div>
     
         {% if placeholders %}
-        <progress id="progress" class="progress is-small is-info" max="100">50%</progress>
-    
         <div id="mainForm">
+          {% if file_name %}
+          <p class="subtitle is-5">Uploaded file: <b><span class="has-text-info">{{ file_name }}</span></b></p>
+          {% endif %}
+
           <form id="placeholderForm" data-batch-quantity="{{ batch_quantity | default(1) }}" method="POST"
             action="/post-doc-form">
             {% for i in range(batch_quantity) %}
@@ -82,9 +85,9 @@
 <script>
   let currentFormIndex = 0;
   const totalForms = document.getElementById('placeholderForm').dataset.batchQuantity;
-  let progress = document.getElementById('progress');
+  let progressCard = document.getElementById('progressCard');
   let mainForm = document.getElementById('mainForm');
-  progress.style.display = 'none'
+  progressCard.style.display = 'none'
   let selectedPlaceholders = [];
   const fileNameInput = document.querySelector('input[name="fileName"]');
 
@@ -120,7 +123,7 @@
   }
 
   async function saveFile(element) {
-    progress.style.display = 'block';
+    progressCard.style.display = 'block';
     mainForm.style.display = 'none';
     const form = document.getElementById('placeholderForm');
     const formDataArray = [];
@@ -210,7 +213,7 @@
     } catch (error) {
       console.error('Error:', error);
     } finally {
-      progress.style.display = 'none';
+      progressCard.style.display = 'none';
       mainForm.style.display = 'block';
     }
   }
