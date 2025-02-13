@@ -46,8 +46,19 @@
             </div>
             {% endfor %}
     
+            <div class="field mt-3">
+              <label class="label">Choose the file name pattern</label>
+              <div class="checkboxes mt-2">
+                {% for placeholder in placeholders %}
+                <label class="checkbox">
+                  <input type="checkbox" name="checkbox" value="{{ placeholder }}" onclick="selectPlaceholder('{{ placeholder }}')"/>
+                  {{ placeholder }}
+                </label>
+                {% endfor %}
+              </div>
+            </div>
+
             <div class="field mt-2">
-              <label class="label">Choose the file name</label>
               <div class="control">
                 <input class="input is-small" type="text" name="fileName" required>
               </div>
@@ -74,6 +85,25 @@
   let progress = document.getElementById('progress');
   let mainForm = document.getElementById('mainForm');
   progress.style.display = 'none'
+  let selectedPlaceholders = [];
+  const fileNameInput = document.querySelector('input[name="fileName"]');
+
+  function selectPlaceholder(placeholder) {
+    const checkbox = document.querySelector(`input[value="${placeholder}"]`);
+    
+    if (checkbox.checked) {
+      // Add the placeholder to the list if checked
+      if (!selectedPlaceholders.includes(placeholder)) {
+        selectedPlaceholders.push(placeholder);
+      }
+    } else {
+      // Remove the placeholder from the list if unchecked
+      selectedPlaceholders = selectedPlaceholders.filter(item => item !== placeholder);
+    }
+
+    // Update the file name input field with the concatenated placeholders
+    fileNameInput.value = selectedPlaceholders.join('-');
+  }
 
   function showSelectedForm(action) {
     if (currentFormIndex < totalForms) {

@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, url_for, send_file, make_response, jsonify
+from flask import Flask, render_template, request, send_file
 import re
 import os
 from docxtpl import DocxTemplate
@@ -88,8 +88,8 @@ def transform_file():
 
         data = request.get_json()
         form_data_array = data['formDataArray']
-        file_name = data['fileName']
-        print(file_name)
+        file_name_pattern = data['fileName']  # e.g., "first_name-phone"
+        print(file_name_pattern)
 
         pdf_files = []
 
@@ -98,24 +98,37 @@ def transform_file():
             doc = DocxTemplate(file_path)
             doc.render(form_data)
 
+            # Generate the file name based on the pattern and form data
+            file_name_parts = file_name_pattern.split('-')  # Split the pattern into parts
+            file_name_values = []
+
+            for part in file_name_parts:
+                if part in form_data:  # Check if the placeholder exists in the form data
+                    file_name_values.append(form_data[part])  # Add the corresponding value
+                else:
+                    file_name_values.append(part)  # Fallback to the placeholder name if value is missing
+
+            # Join the values with hyphens to create the final file name
+            dynamic_file_name = '-'.join(file_name_values)
+
             # Save the rendered document temporarily
-            temp_docx = os.path.join(app.config['UPLOAD_FOLDER'], f"{index}_{file_name}.docx")
+            temp_docx = os.path.join(app.config['UPLOAD_FOLDER'], f"{dynamic_file_name}.docx")
             doc.save(temp_docx)
 
             # Convert the temporary .docx to PDF
-            output_pdf = os.path.join(app.config['UPLOAD_FOLDER'], f"{index}_{file_name}.pdf")
+            output_pdf = os.path.join(app.config['UPLOAD_FOLDER'], f"{dynamic_file_name}.pdf")
             convert(temp_docx, output_pdf)
             pdf_files.append(output_pdf)
 
         # Create a ZIP file and add all PDFs to it
-        zipfile_name = os.path.join(app.config['UPLOAD_FOLDER'], f"{file_name}.zip")
+        zipfile_name = os.path.join(app.config['UPLOAD_FOLDER'], f"{file_name_pattern}.zip")
         with zipfile.ZipFile(zipfile_name, "w") as myzip:
             for pdf_file in pdf_files:
                 # Add each PDF file to the ZIP archive
                 myzip.write(pdf_file, os.path.basename(pdf_file))
 
         # Send the ZIP file as a response
-        return send_file(zipfile_name, mimetype='application/zip', as_attachment=True, download_name=f"{file_name}.zip")
+        return send_file(zipfile_name, mimetype='application/zip', as_attachment=True, download_name=f"{file_name_pattern}.zip")
 
     except Exception as e:
         print(f"Error in transform_file: {e}")
@@ -126,11 +139,11 @@ def transform_file():
 
         # Clean up temporary files
         for index in range(len(form_data_array)):
-            temp_docx = os.path.join(app.config['UPLOAD_FOLDER'], f"{index}_{file_name}.docx")
+            temp_docx = os.path.join(app.config['UPLOAD_FOLDER'], f"{dynamic_file_name}.docx")
             if os.path.exists(temp_docx):
                 os.remove(temp_docx)  # Delete the .docx
 
-            temp_pdf = os.path.join(app.config['UPLOAD_FOLDER'], f"{index}_{file_name}.pdf")
+            temp_pdf = os.path.join(app.config['UPLOAD_FOLDER'], f"{dynamic_file_name}.pdf")
             if os.path.exists(temp_pdf):
                 os.remove(temp_pdf)  # Delete the .pdf
 
