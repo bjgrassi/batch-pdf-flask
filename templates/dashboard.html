@@ -1,60 +1,66 @@
 {% extends "header.html" %}
 {% block body %}
-<div class="columns m-3 is-desktop">
-  <div class="column is-4 sidebar">
-    {% if file_name %}
-    <p class="subtitle is-5">Uploaded file: <strong>{{ file_name }}</strong></p>
-    {% endif %}
-
-    {% if placeholders %}
-    <div id="result" {% if isLoading %}class="skeleton-block" {% endif %}>
-      <form id="placeholderForm" data-batch-quantity="{{ batch_quantity | default(1) }}" method="POST"
-        action="/post-doc-form">
-        {% for i in range(batch_quantity) %}
-        <div id="{{ i }}_form" class="form-instance" {% if i !=0 %}style="display: none;" {% endif %}>
-          <p class="subtitle is-3">File {{ i + 1 }}</p>
-
-          {% for placeholder in placeholders %}
-          <div class="field">
-            <label class="label">{{ placeholder }}</label>
-            <div class="control">
-              <input class="input is-small"
-                type="text" 
-                name="{{ i }}_{{ placeholder }}"
-                {% if excel_array %}value="{{ excel_array[i][placeholder] }}" {% endif %}
-                required> 
+<div class="columns p-3 is-desktop">
+  <div class="column is-3">
+    <div class="card card-border">
+      <div class="card-content">
+        {% if file_name %}
+        <p class="subtitle is-5">Uploaded file: <b><span class="has-text-info">{{ file_name }}</span></b></p>
+        {% endif %}
+    
+        {% if placeholders %}
+        <progress id="progress" class="progress is-small is-info" max="100">50%</progress>
+    
+        <div id="mainForm">
+          <form id="placeholderForm" data-batch-quantity="{{ batch_quantity | default(1) }}" method="POST"
+            action="/post-doc-form">
+            {% for i in range(batch_quantity) %}
+            <div id="{{ i }}_form" class="form-instance" {% if i !=0 %}style="display: none;" {% endif %}>
+              <p class="subtitle is-3">PDF {{ i + 1 }}:</p>
+    
+              {% for placeholder in placeholders %}
+              <div class="field">
+                <label class="label">{{ placeholder }}</label>
+                <div class="control">
+                  <input class="input is-small"
+                    type="text" 
+                    name="{{ i }}_{{ placeholder }}"
+                    {% if excel_array %}value="{{ excel_array[i][placeholder] }}" {% endif %}
+                    required> 
+                </div>
+              </div>
+              {% endfor %}
+    
+              <button
+                type="button"
+                id="previousButton"
+                class="button is-info mt-3"
+                onclick="showSelectedForm('previous')"
+                {% if i ==0 %}disabled{% endif %}>Previous</button>
+              <button
+                type="button"
+                id="nextButton"
+                class="button is-info mt-3"
+                onclick="showSelectedForm('next')"
+                {% if i ==batch_quantity - 1 %}disabled{% endif %}>Next</button>
             </div>
-          </div>
-          {% endfor %}
-
-          <button
-            type="button"
-            id="previousButton"
-            class="button is-info mt-3"
-            onclick="showSelectedForm('previous')"
-            {% if i ==0 %}disabled{% endif %}>Previous</button>
-          <button
-            type="button"
-            id="nextButton"
-            class="button is-info mt-3"
-            onclick="showSelectedForm('next')"
-            {% if i ==batch_quantity - 1 %}disabled{% endif %}>Next</button>
+            {% endfor %}
+    
+            <div class="field mt-2">
+              <label class="label">Choose the file name</label>
+              <div class="control">
+                <input class="input is-small" type="text" name="fileName" required>
+              </div>
+            </div>
+          </form>
+    
+          <button type="button" id="submitButton" class="button is-info mt-3" onclick="saveFile(this)">Save File</button>
         </div>
-        {% endfor %}
-
-        <div class="field mt-2">
-          <label class="label">Choose the file name</label>
-          <div class="control">
-            <input class="input is-small" type="text" name="fileName" required>
-          </div>
-        </div>
-      </form>
-
-      <button type="button" id="submitButton" class="button is-info mt-3" onclick="saveFile(this)">Save File</button>
+        {% else %}
+        <p>No placeholders found in the document.</p>
+        {% endif %}
+      </div>
     </div>
-    {% else %}
-    <p>No placeholders found in the document.</p>
-    {% endif %}
   </div>
   <div class="column">
     <p class="subtitle is-4">Your document's preview</p>
@@ -65,6 +71,9 @@
 <script>
   let currentFormIndex = 0;
   const totalForms = document.getElementById('placeholderForm').dataset.batchQuantity;
+  let progress = document.getElementById('progress');
+  let mainForm = document.getElementById('mainForm');
+  progress.style.display = 'none'
 
   function showSelectedForm(action) {
     if (currentFormIndex < totalForms) {
@@ -81,8 +90,8 @@
   }
 
   async function saveFile(element) {
-    element.classList.add('is-loading');
-    let isLoading = true;
+    progress.style.display = 'block';
+    mainForm.style.display = 'none';
     const form = document.getElementById('placeholderForm');
     const formDataArray = [];
     const formData = new FormData(form);
@@ -171,7 +180,8 @@
     } catch (error) {
       console.error('Error:', error);
     } finally {
-      element.classList.remove('is-loading');
+      progress.style.display = 'none';
+      mainForm.style.display = 'block';
     }
   }
 </script>
