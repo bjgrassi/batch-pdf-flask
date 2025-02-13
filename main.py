@@ -6,6 +6,7 @@ from docx2pdf import convert
 import pythoncom
 import zipfile
 import pandas as pd
+import glob
 
 app = Flask(__name__)
 app.config['UPLOAD_FOLDER'] = 'uploads'
@@ -137,19 +138,28 @@ def transform_file():
         # Uninitialize the COM library
         pythoncom.CoUninitialize()
 
-        # Clean up temporary files
-        for index in range(len(form_data_array)):
-            temp_docx = os.path.join(app.config['UPLOAD_FOLDER'], f"{dynamic_file_name}.docx")
-            if os.path.exists(temp_docx):
-                os.remove(temp_docx)  # Delete the .docx
+        # Construct the path pattern for .docx and .pdf files
+        docx_files = glob.glob(os.path.join(app.config['UPLOAD_FOLDER'], '*.docx'))
+        pdf_files = glob.glob(os.path.join(app.config['UPLOAD_FOLDER'], '*.pdf'))
 
-            temp_pdf = os.path.join(app.config['UPLOAD_FOLDER'], f"{dynamic_file_name}.pdf")
-            if os.path.exists(temp_pdf):
-                os.remove(temp_pdf)  # Delete the .pdf
+        # Delete all .docx files
+        for docx_file in docx_files:
+            try:
+                os.remove(docx_file)
+                print(f"Deleted: {docx_file}")
+            except Exception as e:
+                print(f"Error deleting {docx_file}: {e}")
 
-        # # Delete the ZIP file after sending it (optional)
-        # if os.path.exists(zipfile_name):
-        #     os.remove(zipfile_name)
+        # Delete all .pdf files
+        for pdf_file in pdf_files:
+            try:
+                os.remove(pdf_file)
+                print(f"Deleted: {pdf_file}")
+            except Exception as e:
+                print(f"Error deleting {pdf_file}: {e}")
+
+        # Delete the XLSX or CSV file after sending it (optional)
+        # Delete the ZIP file after sending it (optional)
 
 if __name__ == "__main__":
     app.run(debug=True)
