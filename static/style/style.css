@@ -5,22 +5,12 @@
   --sidebar-color: #f8f9fa;
 }
 
-.logo {
-  color: var(--primary-color);
-  font-family: Verdana, Geneva, Tahoma, sans-serif;
-  font-size: 2rem;
-}
-
 .file-drop-area {
   border: 2px dashed #ccc;
-  border-radius: 10px;
   text-align: center;
-  padding: 20px;
   cursor: pointer;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
   align-items: center;
+  width: 500px;
   transition: border-color 0.3s ease-in-out;
 }
 
@@ -30,32 +20,14 @@
   margin-bottom: 15px;
 }
 
-.click-text {
-  font-weight: bold;
-  color: var(--primary-color);
-  cursor: pointer;
-}
-
 /* Hover Effects */
 .file-drop-area:hover {
   border-color: var(--hover-color);
 }
 
-/* Hidden File Input */
-input[type="file"] {
-  display: none;
-}
 
-button.is-info {
-  background-color: var(--primary-color);
-}
-
-button:hover {
-  background-color: var(--hover-color);
-}
-
-.sidebar {
-  background-color: var(--sidebar-color);
+.card-border {
+  border: 2px dashed #ccc;
 }
 
 .canvas {
