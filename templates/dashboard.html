@@ -1,6 +1,6 @@
 {% extends "header.html" %}
 {% block body %}
-<div class="columns p-3 is-desktop">
+<div class="columns p-3 is-desktop fix-height">
   <div class="column is-3-desktop is-12-tablet">
     <div class="card card-border">
       <div class="card-content">
@@ -77,8 +77,13 @@
     </div>
   </div>
   <div class="column is-9-desktop is-12-tablet">
-    <p class="subtitle is-4">Your document's preview</p>
-    <div class="canvas">{{ html_content|safe }}</div>
+    <embed
+      src="{{ url_for('get_uploaded_file', filename='output.pdf') }}"
+      type="application/pdf"
+      frameBorder="0"
+      scrolling="auto"
+      height="100%"
+      width="100%"></embed>
   </div>
 </div>
 

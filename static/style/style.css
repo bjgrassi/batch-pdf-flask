@@ -5,6 +5,16 @@
   --sidebar-color: #f8f9fa;
 }
 
+html, body { 
+  height: 100%; /* Full height */ 
+  margin: 0;    /* Remove default margin */ 
+  padding: 0;   /* Remove default padding */ 
+}
+
+.fix-height {
+  height: inherit;
+}
+
 .file-drop-area {
   border: 2px dashed #ccc;
   text-align: center;
@@ -25,15 +35,10 @@
   border-color: var(--hover-color);
 }
 
-
 .card-border {
   border: 2px dashed #ccc;
 }
 
-.canvas {
-  margin-top: 20px;
-  width: 80%;
-  height: full;
-  border: 1px solid black;
-  padding: 15px;
+.min-height {
+  min-height: min-content;
 }

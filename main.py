@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, send_file
+from flask import Flask, send_from_directory, render_template, request, send_file
 import re
 import os
 from docxtpl import DocxTemplate
@@ -10,7 +10,9 @@ import glob
 
 app = Flask(__name__)
 app.config['UPLOAD_FOLDER'] = 'uploads'
+app.config['STATIC_FOLDER'] = 'uploads/static'
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
+os.makedirs(app.config['STATIC_FOLDER'], exist_ok=True)
 
 file_path = ''
 
@@ -31,15 +33,26 @@ def extract_placeholders_from_docx(doc_path):
     
     return list(placeholders)
 
-def docx_to_html(file_path):
-    doc = DocxTemplate(file_path)
-    docx_obj = doc.get_docx()
-    html_content = ""
-    for para in docx_obj.paragraphs:
-        html_content += f"<p>{para.text}</p>"
+@app.route('/uploads/temp/<filename>')
+def get_uploaded_file(filename):
+    return send_from_directory(app.config['STATIC_FOLDER'], filename)
 
-    return html_content
-
+def convert_temp_docx_to_pdf(temp_pdf_output):
+    temp_pdf = os.path.join(app.config['STATIC_FOLDER'], temp_pdf_output)
+    
+    try:
+        # Ensure pythoncom is initialized
+        pythoncom.CoInitialize()
+        
+        # Convert the DOCX to PDF
+        convert(file_path, temp_pdf)
+        print(f"PDF conversion successful: {temp_pdf}")
+        
+        # Uninitialize pythoncom after conversion
+        pythoncom.CoUninitialize()
+    except Exception as e:
+        print(f"Error during PDF conversion: {e}")
+        return f"Error during PDF conversion: {e}", 500
 
 @app.route("/", methods=['GET', 'POST'])
 def home_page():
@@ -53,27 +66,29 @@ def dashboard():
         wordFile = request.files['wordFile']
         if wordFile and wordFile.filename.endswith('.docx'):
             global file_path
-            file_path = os.path.join(app.config['UPLOAD_FOLDER'], wordFile.filename)
+            file_path = os.path.join(app.config['STATIC_FOLDER'], wordFile.filename)
             wordFile.save(file_path)
+            
             placeholders = extract_placeholders_from_docx(file_path)
-            html_content = docx_to_html(file_path)
+            temp_pdf_output = "output.pdf"
+            convert_temp_docx_to_pdf(temp_pdf_output)
 
             if request.form['radioButton'] == 'manually':
                 batch_quantity = int(request.form.get('batchQuantity', 1))
                 return render_template(
                     'dashboard.html', placeholders=placeholders, file_name=wordFile.filename,
-                    batch_quantity=batch_quantity, html_content=html_content
+                    batch_quantity=batch_quantity, pdf_content=get_uploaded_file(temp_pdf_output)
                 )
             else:
                 excelFile = request.files['excelFile']
                 if excelFile and (excelFile.filename.endswith('.xlsx') or excelFile.filename.endswith('.csv')):
-                    excel_path = os.path.join(app.config['UPLOAD_FOLDER'], excelFile.filename)
+                    excel_path = os.path.join(app.config['STATIC_FOLDER'], excelFile.filename)
                     excelFile.save(excel_path)
                     df = pd.read_excel(excel_path) if excelFile.filename.endswith('.xlsx') else pd.read_csv(excel_path)
                     excel_array = df.to_dict(orient='records')
                     return render_template(
                         'dashboard.html', placeholders=placeholders, file_name=wordFile.filename,
-                        batch_quantity=len(df), html_content=html_content, excel_array=excel_array
+                        batch_quantity=len(df), pdf_content=get_uploaded_file(temp_pdf_output), excel_array=excel_array
                     )
                 else:
                     return "Invalid Excel file format. Please upload a .xlsx or .csv file.", 400
