@@ -1,84 +1,140 @@
-{% extends "header.html" %}
-{% block body %}
-  <div class="columns is-6 is-mobile is-centered is-gapless">
-    <form class="doc-form control" method="POST" action="/dashboard" enctype="multipart/form-data">
-      <div class="column">
-        <div class="card">
-          <label for="wordFile" class="card-content is-flex is-flex-direction-column is-justify-content-center file-drop-area">
-            <img src="{{ url_for('static', filename='assets/doc-icon.png') }}" alt="DOC Icon" class="file-icon" />
-            <p id="messageWord" class="has-text-grey">
-              Drag and drop your Word file here or <b><span class="has-text-black-bis">click to select one</span></b>
-            </p>
-            <input type="file" id="wordFile" name="wordFile" accept=".doc, .docx" required hidden onchange="handleFileUpload(this)" />
-          </label>
-        </div>
-      </div>
-
-      <div class="column">
-        <label class="label">How do you want to fill the placeholders?</label>
-        <div class="radios">
-          <label class="radio">
-            <input type="radio" name="radioButton" value="manually" onclick="showSelectedView('manuallyView', 'excelView')"/>
-            Manually
-          </label>
-          <label class="radio">
-            <input type="radio" name="radioButton" value="excel" onclick="showSelectedView('excelView', 'manuallyView')"/>
-            Import Excel File
-          </label>
-        </div>
-      </div>
-
-      <div id="manuallyView" class="column" style="display: none;">
-        <label for="batchQuantity" class="label">
-          Select how many files do you want to batch
+{% extends "header.html" %} {% block body %}
+<div class="columns is-6 is-mobile is-centered is-gapless">
+  <form
+    class="doc-form control"
+    method="POST"
+    action="/dashboard"
+    enctype="multipart/form-data"
+  >
+    <div class="column">
+      <div class="card">
+        <label
+          for="wordFile"
+          class="card-content is-flex is-flex-direction-column is-justify-content-center file-drop-area"
+        >
+          <img
+            src="{{ url_for('static', filename='assets/doc-icon.png') }}"
+            alt="DOC Icon"
+            class="file-icon"
+          />
+          <p id="messageWord" class="has-text-grey">
+            Drag and drop your Word file here or
+            <b><span class="has-text-black-bis">click to select one</span></b>
+          </p>
+          <input
+            type="file"
+            id="wordFile"
+            name="wordFile"
+            accept=".doc, .docx"
+            required
+            hidden
+            onchange="handleFileUpload(this)"
+          />
         </label>
-        <div class="control">
-          <input id="batchQuantity" name="batchQuantity" class="input" type="number" placeholder="Quantity" />
-        </div>
       </div>
+    </div>
 
-      <div id="excelView" class="column" style="display: none;">
-        <div class="card">
-          <label for="excelFile" class="card-content is-flex is-flex-direction-column is-justify-content-center file-drop-area">
-            <img src="{{ url_for('static', filename='assets/excel-icon.png') }}" alt="Excel Icon" class="file-icon" />
-            <p id="messageExcel" class="has-text-grey">
-              Drag and drop your Excel file here or <b><span class="has-text-black-bis">click to select one</span></b>
-            </p>
-            <input type="file" id="excelFile" name="excelFile" accept=".xlsx, .csv" hidden onchange="handleFileUpload(this)" />
-          </label>
-        </div>
+    <div class="column">
+      <label class="label">How do you want to fill the placeholders?</label>
+      <div class="radios">
+        <label class="radio">
+          <input
+            type="radio"
+            name="radioButton"
+            value="manually"
+            onclick="showSelectedView('manuallyView', 'excelView')"
+          />
+          Manually
+        </label>
+        <label class="radio">
+          <input
+            type="radio"
+            name="radioButton"
+            value="excel"
+            onclick="showSelectedView('excelView', 'manuallyView')"
+          />
+          Import Excel File
+        </label>
       </div>
+    </div>
 
-      <div id="uploadColumn" class="column" style="display: none;">
-        <button id="uploadDocument" class="button is-fullwidth is-info" type="submit" onclick="showLoading(this)">
-          Upload
-        </button>
+    <div id="manuallyView" class="column" style="display: none">
+      <label for="batchQuantity" class="label">
+        Select how many files do you want to batch
+      </label>
+      <div class="control">
+        <input
+          id="batchQuantity"
+          name="batchQuantity"
+          class="input"
+          type="number"
+          placeholder="Quantity"
+        />
       </div>
-    </form>
-  </div>
+    </div>
+
+    <div id="excelView" class="column" style="display: none">
+      <div class="card">
+        <label
+          for="excelFile"
+          class="card-content is-flex is-flex-direction-column is-justify-content-center file-drop-area"
+        >
+          <img
+            src="{{ url_for('static', filename='assets/excel-icon.png') }}"
+            alt="Excel Icon"
+            class="file-icon"
+          />
+          <p id="messageExcel" class="has-text-grey">
+            Drag and drop your Excel file here or
+            <b><span class="has-text-black-bis">click to select one</span></b>
+          </p>
+          <input
+            type="file"
+            id="excelFile"
+            name="excelFile"
+            accept=".xlsx, .csv"
+            hidden
+            onchange="handleFileUpload(this)"
+          />
+        </label>
+      </div>
+    </div>
+
+    <div id="uploadColumn" class="column" style="display: none">
+      <button
+        id="uploadDocument"
+        class="button is-fullwidth is-info"
+        type="submit"
+        onclick="showLoading(this)"
+      >
+        Upload
+      </button>
+    </div>
+  </form>
+</div>
 
 <script>
   function handleFileUpload(input) {
-    let message = document.getElementById('messageWord');
-    
-    if(input.id == 'excelFile') {
-      message = document.getElementById('messageExcel');
+    let message = document.getElementById("messageWord");
+
+    if (input.id == "excelFile") {
+      message = document.getElementById("messageExcel");
     }
 
     if (input.files && input.files[0]) {
       const fileName = input.files[0].name;
-        message.innerHTML = `File <b><span class="has-text-black-bis">${fileName}</span></b> uploaded with success!`;
+      message.innerHTML = `File <b><span class="has-text-black-bis">${fileName}</span></b> uploaded with success!`;
     }
   }
 
   function showSelectedView(idShow, idRemove) {
-    document.getElementById(idShow).style.display = 'block';
-    document.getElementById(idRemove).style.display = 'none';
-    document.getElementById('uploadColumn').style.display = 'block';
+    document.getElementById(idShow).style.display = "block";
+    document.getElementById(idRemove).style.display = "none";
+    document.getElementById("uploadColumn").style.display = "block";
   }
 
   function showLoading(element) {
-    element.classList.add('is-loading');
+    element.classList.add("is-loading");
   }
 </script>
 {% endblock %}

@@ -146,8 +146,14 @@
     }
 
     try {
-      // Send the form data to the Flask backend
-      const response = await fetch('/post-doc-form', {
+          const handle = await window.showSaveFilePicker({
+      suggestedName: fileName + '.zip',// Suggested filename for the file
+      types: [{
+              description: 'ZIP file',
+              accept: { 'application/zip': ['.zip'] },
+            }],
+    });
+    const response = await fetch('/post-doc-form', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -162,54 +168,14 @@
       // Get the ZIP file as a Blob
       const zipBlob = await response.blob();
 
-      // Feature detection. The API needs to be supported
-      // and the app not run in an iframe.
-      const supportsFileSystemAccess =
-        'showSaveFilePicker' in window &&
-        (() => {
-          try {
-            return window.self === window.top;
-          } catch {
-            return false;
-          }
-        })();
-
-      // Check if the browser supports showSaveFilePicker
-      if (supportsFileSystemAccess) {
-        try {
-          // Use showSaveFilePicker for Chrome and Edge
-          const handle = await window.showSaveFilePicker({
-            suggestedName: fileName + '.zip',
-            types: [{
-              description: 'ZIP file',
-              accept: { 'application/zip': ['.zip'] },
-            }],
-          });
-
-          // Create a writable stream and write the ZIP Blob
-          const writableStream = await handle.createWritable();
+    // Now you can write to the file
+    const writableStream = await handle.createWritable();
           await writableStream.write(zipBlob);
           await writableStream.close();
-        } catch (err) {
-          console.error("Error saving file:", err);
-        }
-      } else {
-        // Fallback for Firefox and other browsers
-        const url = window.URL.createObjectURL(zipBlob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = fileName + '.zip';  // Use the provided filename
-        document.body.appendChild(a);
-        a.click();
-
-        // Clean up
-        setTimeout(() => {
-          window.URL.revokeObjectURL(url);
-          document.body.removeChild(a);
-        }, 1000);
-      }
-
-      console.warn('ZIP file saved successfully!');
+    
+    console.log('File saved successfully!');
+    
+    
     } catch (error) {
       console.error('Error:', error);
     } finally {
