@@ -6,7 +6,8 @@ from docx2pdf import convert
 import pythoncom
 import zipfile
 import pandas as pd
-import glob
+from utils.doc_to_html  import docx_to_html
+import globe
 
 app = Flask(__name__)
 app.config['UPLOAD_FOLDER'] = 'uploads'
@@ -27,7 +28,13 @@ def extract_placeholders_from_docx(doc_path):
         for para in docx_obj.paragraphs:
             matches = re.findall(r"{{(.*?)}}", para.text)
             placeholders.update(matches)
-    
+
+        for table in docx_obj.tables:
+            for row in table.rows:
+                for cell in row.cells:
+                    matches = re.findall(r"{{(.*?)}}", cell.text)
+                    placeholders.update(matches)
+
     except Exception as e:
         print(f"Error loading document: {e}")
     
@@ -101,8 +108,11 @@ def transform_file():
     try:
         # Initialize the COM library
         pythoncom.CoInitialize()
-
+        print('in post')
         data = request.get_json()
+        print(data)
+        print("data")
+
         form_data_array = data['formDataArray']
         file_name_pattern = data['fileName']  # e.g., "first_name-phone"
         print(file_name_pattern)
@@ -113,6 +123,9 @@ def transform_file():
             # Fill the placeholders
             doc = DocxTemplate(file_path)
             doc.render(form_data)
+            print(form_data)
+            print("form_data")
+
 
             # Generate the file name based on the pattern and form data
             file_name_parts = file_name_pattern.split('-')  # Split the pattern into parts
@@ -130,10 +143,14 @@ def transform_file():
             # Save the rendered document temporarily
             temp_docx = os.path.join(app.config['UPLOAD_FOLDER'], f"{dynamic_file_name}.docx")
             doc.save(temp_docx)
+            print("12")
+
 
             # Convert the temporary .docx to PDF
             output_pdf = os.path.join(app.config['UPLOAD_FOLDER'], f"{dynamic_file_name}.pdf")
             convert(temp_docx, output_pdf)
+            print("check13")
+
             pdf_files.append(output_pdf)
 
         # Create a ZIP file and add all PDFs to it
