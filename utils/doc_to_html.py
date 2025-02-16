@@ -1,78 +1,117 @@
-from docxtpl import DocxTemplate
 from docx import Document
-import xml.etree.ElementTree as ET
+from docx.document import Document as _Document
+from docx.oxml.text.paragraph import CT_P
+from docx.oxml.table import CT_Tbl
+from docx.text.paragraph import Paragraph
+from docx.table import _Cell, Table
+from docxtpl import DocxTemplate
+import re
 
 def docx_to_html(file_path):
-    # Load the .docx file using both python-docx and docxtpl
-    doc = Document(file_path)  # Using python-docx for header and body
-    docx_obj = DocxTemplate(file_path)  # Using docxtpl for rendering placeholders
-
-    # Initialize HTML content
+    """
+    Convert DOCX to HTML while preserving formatting, original element order, headers and footers.
+    """
+    template_doc = DocxTemplate(file_path)
+    doc = template_doc.get_docx()
     html_content = ""
 
-    # 1. Extract Header Content
-    for section in doc.sections:
-        header = section.header
-        for paragraph in header.paragraphs:
-            html_content += "<div class='header'><p>"
-            for run in paragraph.runs:
-                text = run.text
-                if run.bold:
-                    text = f"<b>{text}</b>"
-                if run.italic:
-                    text = f"<i>{text}</i>"
-                if run.underline:
-                    text = f"<u>{text}</u>"
-                html_content += text
-            html_content += "</p></div>"
-
-    # 2. Convert Document Paragraphs to HTML
-    for para in docx_obj.get_docx().paragraphs:
-        para_html = "<p>"
-        for run in para.runs:
-            text = run.text
-            # Text formatting (bold, italic, underline)
+    def process_run_formatting(run):
+        """Process text formatting for a run"""
+        text = run.text
+        if text.strip():
+            # Preserve placeholders
+            placeholder_matches = re.findall(r"{{(.*?)}}", text)
+            if placeholder_matches:
+                return text
+            
             if run.bold:
-                text = f"<b>{text}</b>"
+                text = f"<strong>{text}</strong>"
             if run.italic:
-                text = f"<i>{text}</i>"
+                text = f"<em>{text}</em>"
             if run.underline:
                 text = f"<u>{text}</u>"
-            # Font size
+            
+            if hasattr(run.font.color, 'rgb') and run.font.color.rgb:
+                rgb = run.font.color.rgb
+                text = f'<span style="color: rgb({rgb.r},{rgb.g},{rgb.b})">{text}</span>'
+            
             if run.font.size:
-                font_size = run.font.size.pt if run.font.size else 12
-                text = f'<span style="font-size:{font_size}px;">{text}</span>'
-            para_html += text
-        para_html += "</p>"
-        html_content += para_html
+                size = run.font.size.pt
+                text = f'<span style="font-size: {size}pt">{text}</span>'
+        return text
 
-    # 3. Convert Tables to HTML (including headers)
-    for table in docx_obj.get_docx().tables:
-        html_content += "<table border='1' style='border-collapse:collapse;'>"
-        for row_idx, row in enumerate(table.rows):
-            html_content += "<tr>"
-            for cell_idx, cell in enumerate(row.cells):
-                if row_idx == 0:  # First row as header
-                    html_content += f"<th style='font-weight: bold;'>{cell.text}</th>"
-                else:
-                    html_content += f"<td>{cell.text}</td>"
-            html_content += "</tr>"
-        html_content += "</table>"
+    def process_paragraph(paragraph):
+        """Process a paragraph with its formatting"""
+        style = paragraph.style.name
+        alignment = paragraph.alignment
+        
+        style_attr = ''
+        if alignment is not None:
+            align_map = {0: 'left', 1: 'center', 2: 'right', 3: 'justify'}
+            if alignment in align_map:
+                style_attr = f' style="text-align: {align_map[alignment]}"'
+        
+        tag = 'p'
+        if 'Heading' in style:
+            level = style[-1] if style[-1].isdigit() else '1'
+            tag = f'h{level}'
+        
+        content = ''.join(process_run_formatting(run) for run in paragraph.runs)
+        return f"<{tag}{style_attr}>{content}</{tag}>"
 
-    # 4. Handle Hyperlinks by parsing the XML
-    # This part works by directly extracting hyperlinks from the XML of the document
-    docx_xml = docx_obj.get_docx().element
-    for rel in docx_xml.findall('.//w:hyperlink', namespaces=docx_xml.nsmap):
-        # Extract the hyperlink URL
-        url = rel.get('{http://schemas.openxmlformats.org/officeDocument/2006/relationships}target')
-        text = ""
-        for text_elem in rel.findall('.//w:t', namespaces=docx_xml.nsmap):
-            text += text_elem.text
+    def process_table(table):
+        """Process a table with its formatting"""
+        table_html = '<table border="1" style="width:100%; border-collapse: collapse; margin: 10px 0;">'
+        for row in table.rows:
+            table_html += "<tr>"
+            for cell in row.cells:
+                table_html += '<td style="border: 1px solid #ddd; padding: 8px;">'
+                for paragraph in cell.paragraphs:
+                    table_html += process_paragraph(paragraph)
+                table_html += "</td>"
+            table_html += "</tr>"
+        table_html += "</table>"
+        return table_html
 
-        # Wrap the hyperlink in an <a> tag
-        html_content += f'<a href="{url}">{text}</a>'
+    def process_section(section):
+        """Process headers and footers in a section"""
+        section_html = ""
+        
+        # Process header
+        if section.header:
+            section_html += '<div class="header" style="border-bottom: 1px solid #ddd; margin-bottom: 20px; padding-bottom: 10px;">'
+            # Process header paragraphs
+            for paragraph in section.header.paragraphs:
+                section_html += process_paragraph(paragraph)
+            # Process header tables
+            for table in section.header.tables:
+                section_html += process_table(table)
+            section_html += '</div>'
+        
+        # Process footer
+        if section.footer:
+            section_html += '<div class="footer" style="border-top: 1px solid #ddd; margin-top: 20px; padding-top: 10px;">'
+            # Process footer paragraphs
+            for paragraph in section.footer.paragraphs:
+                section_html += process_paragraph(paragraph)
+            # Process footer tables
+            for table in section.footer.tables:
+                section_html += process_table(table)
+            section_html += '</div>'
+            
+        return section_html
 
-    # 5. Handle Images (optional, if needed)
-    # You can add logic here to extract and handle images if required
+    # Process each section (for headers and footers)
+    for section in doc.sections:
+        html_content += process_section(section)
+
+    # Process main document content
+    for element in doc.element.body:
+        if isinstance(element, CT_P):
+            paragraph = Paragraph(element, doc)
+            html_content += process_paragraph(paragraph)
+        elif isinstance(element, CT_Tbl):
+            table = Table(element, doc)
+            html_content += process_table(table)
 
     return html_content

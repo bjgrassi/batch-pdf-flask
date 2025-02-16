@@ -6,6 +6,7 @@ from docx2pdf import convert
 import pythoncom
 import zipfile
 import pandas as pd
+from utils.doc_to_html  import docx_to_html 
 
 app = Flask(__name__)
 app.config['UPLOAD_FOLDER'] = 'uploads'
@@ -35,24 +36,6 @@ def extract_placeholders_from_docx(doc_path):
         print(f"Error loading document: {e}")
     
     return list(placeholders)
-
-# def docx_to_html(file_path):
-#     doc = DocxTemplate(file_path)
-#     docx_obj = doc.get_docx()
-#     html_content = ""
-#     for para in docx_obj.paragraphs:
-#         html_content += f"<p>{para.text}</p>"
-
-#     for table in docx_obj.tables:
-#         html_content += "<table border='1'>"
-#         for row in table.rows:
-#             html_content += "<tr>"
-#             for cell in row.cells:
-#                 html_content += f"<td>{cell.text}</td>"
-#             html_content += "</tr>"
-#         html_content += "</table>"
-
-#     return html_content
 
 
 @app.route("/", methods=['GET', 'POST'])
