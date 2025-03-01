@@ -78,7 +78,13 @@
   </div>
   <div class="column">
     <p class="subtitle is-4">Your document's preview</p>
-    <div class="canvas">{{ html_content|safe }}</div>
+     <iframe
+        src="{{ url_for('uploaded_file', filename='preview.pdf') }}"
+        type="application/pdf"
+        frameBorder="0"
+        scrolling="auto"
+        height="100%"
+        width="100%"></iframe>
   </div>
 </div>
 
@@ -119,9 +125,59 @@
       }
       
       document.getElementById(`${currentFormIndex}_form`).style.display = 'block';
+      console.log('calling func')
+      sendFormDataToBackend(currentFormIndex);
+
     }
   }
+  async function sendFormDataToBackend(index) {
+    console.log('in func')
 
+  // Select the form based on the current index
+  const form = document.getElementById(`${index}_form`);
+
+  console.log(form)
+
+
+  if (!form) {
+    console.error("Form not found");
+    return;
+  }
+
+  // Create a JSON object from form inputs
+  const formData = {};
+  const inputs = form.querySelectorAll("input, select, textarea"); // Select all form fields
+
+  inputs.forEach((input) => {
+    formData[input.name] = input.value; // Use `name` as key and `value` as the data
+  });
+
+  console.log({formData})
+
+  console.log('Eroor')
+  try {
+    const response = await fetch("/generate-pdf-preview", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ index, formData }), // Send index + form data
+    });
+
+    if (response.ok) {
+      const result = await response.json();
+      console.log("PDF generated:", result.pdf_path);
+
+      // Optionally update the UI to show the generated PDF
+      const pdfIframe = document.querySelector("iframe");
+        pdfIframe.src = pdfIframe.src;  // Reloads the same URL
+    } else {
+      console.error("Failed to generate PDF");
+    }
+  } catch (error) {
+    console.error("Error:", error);
+  }
+}
   async function saveFile(element) {
     progressCard.style.display = 'block';
     mainForm.style.display = 'none';

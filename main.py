@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, send_file
+from flask import Flask, render_template, request, send_file, send_from_directory,jsonify
 import re
 import os
 from docxtpl import DocxTemplate
@@ -6,6 +6,7 @@ from docx2pdf import convert
 import pythoncom
 import zipfile
 import pandas as pd
+
 from utils.doc_to_html  import docx_to_html 
 
 app = Flask(__name__)
@@ -14,6 +15,9 @@ os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 
 file_path = ''
 
+@app.route('/uploads/<filename>')
+def uploaded_file(filename):
+    return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
 # Extract placeholders like {{first_name}} from a .docx file.
 def extract_placeholders_from_docx(doc_path):
     try:
@@ -38,6 +42,74 @@ def extract_placeholders_from_docx(doc_path):
     return list(placeholders)
 
 
+def generate_pdf_preview(doc_path, json_data):
+    try:
+        # Initialize COM library
+        pythoncom.CoInitialize()
+
+        # Load the .docx template
+        doc = DocxTemplate(doc_path)
+        print('print')
+
+        # Render the document with JSON data
+        if len(json_data)>0:
+            doc.render(json_data)
+            print("skip")
+
+        # Save to a temporary .docx file
+        temp_docx = os.path.join("uploads", "preview.docx")
+        doc.save(temp_docx)
+
+        doc = None
+
+        # Convert the temporary .docx file to PDF
+        temp_pdf = os.path.join("uploads", "preview.pdf")
+        convert(temp_docx, temp_pdf, keep_active=True)
+
+        # Clean up the temporary .docx file
+        if os.path.exists(temp_docx):
+            os.remove(temp_docx)
+
+        # Return the path to the generated PDF file
+        return temp_pdf
+
+    except Exception as e:
+        # If there's an error, return an error message
+        return f"Error generating PDF preview: {str(e)}"
+
+    finally:
+        # Uninitialize COM library
+        pythoncom.CoUninitialize()
+
+
+@app.route("/generate-pdf-preview", methods=['POST'])
+def generate_pdf_for_current_index():
+    try:
+        data = request.get_json()  # Get data from the frontend
+        index = data.get("index")
+        form_data = data.get("formData")
+        print(form_data)
+
+        if not form_data:
+            return jsonify({"error": "No form data provided"}), 400
+
+
+        cleaned_data = {}
+        for key, value in form_data.items():
+            # Remove the numeric prefix (e.g., "2_rate3" → "rate3")
+            new_key = "_".join(key.split("_")[1:])  # Remove first part (index)
+            cleaned_data[new_key] = value
+
+        print(cleaned_data)
+
+
+        generate_pdf_preview(file_path, cleaned_data)
+
+        return jsonify({"message": "PDF generated successfully", "pdf_path": f"/uploads/preview_{index}.pdf"})
+
+    except Exception as e:
+        return jsonify({"error": f"Failed to generate PDF: {str(e)}"}), 500
+
 @app.route("/", methods=['GET', 'POST'])
 def home_page():
     success_message = request.args.get('success', None)
@@ -53,13 +125,12 @@ def dashboard():
             file_path = os.path.join(app.config['UPLOAD_FOLDER'], wordFile.filename)
             wordFile.save(file_path)
             placeholders = extract_placeholders_from_docx(file_path)
-            html_content = docx_to_html(file_path)
-
             if request.form['radioButton'] == 'manually':
                 batch_quantity = int(request.form.get('batchQuantity', 1))
+                generate_pdf_preview(file_path,{})
                 return render_template(
                     'dashboard.html', placeholders=placeholders, file_name=wordFile.filename,
-                    batch_quantity=batch_quantity, html_content=html_content
+                    batch_quantity=batch_quantity
                 )
             else:
                 excelFile = request.files['excelFile']
@@ -68,9 +139,11 @@ def dashboard():
                     excelFile.save(excel_path)
                     df = pd.read_excel(excel_path) if excelFile.filename.endswith('.xlsx') else pd.read_csv(excel_path)
                     excel_array = df.to_dict(orient='records')
+                    pdf_content_pre = generate_pdf_preview(file_path, excel_array[0])
+                    print('pdf')
                     return render_template(
                         'dashboard.html', placeholders=placeholders, file_name=wordFile.filename,
-                        batch_quantity=len(df), html_content=html_content, excel_array=excel_array
+                        batch_quantity=len(df), excel_array=excel_array
                     )
                 else:
                     return "Invalid Excel file format. Please upload a .xlsx or .csv file.", 400
