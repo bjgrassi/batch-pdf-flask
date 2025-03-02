@@ -19,7 +19,7 @@ os.makedirs(app.config['STATIC_FOLDER'], exist_ok=True)
 file_path = ''
 
 @app.route('/uploads/<filename>')
-def uploaded_file(filename):
+def get_uploaded_file(filename):
     return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
 # Extract placeholders like {{first_name}} from a .docx file.
 def extract_placeholders_from_docx(doc_path):
@@ -66,7 +66,7 @@ def generate_pdf_preview(doc_path, json_data):
         doc = None
 
         # Convert the temporary .docx file to PDF
-        temp_pdf = os.path.join("uploads", "preview.pdf")
+        temp_pdf = os.path.join("uploads", "output.pdf")
         convert(temp_docx, temp_pdf, keep_active=True)
 
         # Clean up the temporary .docx file

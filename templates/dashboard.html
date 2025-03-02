@@ -19,7 +19,22 @@
             action="/post-doc-form">
             {% for i in range(batch_quantity) %}
             <div id="{{ i }}_form" class="form-instance" {% if i !=0 %}style="display: none;" {% endif %}>
+
+            
               <p class="subtitle is-3">PDF {{ i + 1 }}:</p>
+
+              <button
+              type="button"
+              id="previousButton"
+              class="button is-info mt-3"
+              onclick="showSelectedForm('previous')"
+              {% if i ==0 %}disabled{% endif %}>Previous</button>
+            <button
+              type="button"
+              id="nextButton"
+              class="button is-info mt-3"
+              onclick="showSelectedForm('next')"
+              {% if i ==batch_quantity - 1 %}disabled{% endif %}>Next</button>
     
               {% for placeholder in placeholders %}
               <div class="field">
@@ -34,18 +49,7 @@
               </div>
               {% endfor %}
     
-              <button
-                type="button"
-                id="previousButton"
-                class="button is-info mt-3"
-                onclick="showSelectedForm('previous')"
-                {% if i ==0 %}disabled{% endif %}>Previous</button>
-              <button
-                type="button"
-                id="nextButton"
-                class="button is-info mt-3"
-                onclick="showSelectedForm('next')"
-                {% if i ==batch_quantity - 1 %}disabled{% endif %}>Next</button>
+             
             </div>
             {% endfor %}
     
@@ -84,6 +88,7 @@
       scrolling="auto"
       height="100%"
       width="100%"></embed>
+      
   </div>
 </div>
 
@@ -168,7 +173,7 @@
       console.log("PDF generated:", result.pdf_path);
 
       // Optionally update the UI to show the generated PDF
-      const pdfIframe = document.querySelector("iframe");
+      const pdfIframe = document.querySelector("embed");
         pdfIframe.src = pdfIframe.src;  // Reloads the same URL
     } else {
       console.error("Failed to generate PDF");
