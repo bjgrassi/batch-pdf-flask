@@ -1,7 +1,7 @@
 {% extends "header.html" %}
 {% block body %}
-<div class="columns p-3 is-desktop">
-  <div class="column is-3">
+<div class="columns p-3 is-desktop fix-height">
+  <div class="column is-3-desktop is-12-tablet">
     <div class="card card-border">
       <div class="card-content">
         <div id="progressCard">
@@ -63,7 +63,7 @@
 
             <div class="field mt-2">
               <div class="control">
-                <input class="input is-small" type="text" name="fileName" required>
+                <input class="input is-small" type="text" name="fileName" required disabled>
               </div>
             </div>
           </form>
@@ -76,15 +76,14 @@
       </div>
     </div>
   </div>
-  <div class="column">
-    <p class="subtitle is-4">Your document's preview</p>
-     <iframe
-        src="{{ url_for('uploaded_file', filename='preview.pdf') }}"
-        type="application/pdf"
-        frameBorder="0"
-        scrolling="auto"
-        height="100%"
-        width="100%"></iframe>
+  <div class="column is-9-desktop is-12-tablet">
+    <embed
+      src="{{ url_for('get_uploaded_file', filename='output.pdf') }}"
+      type="application/pdf"
+      frameBorder="0"
+      scrolling="auto"
+      height="100%"
+      width="100%"></embed>
   </div>
 </div>
 
@@ -179,6 +178,7 @@
   }
 }
   async function saveFile(element) {
+    fileNameInput.disabled = false;
     progressCard.style.display = 'block';
     mainForm.style.display = 'none';
     const form = document.getElementById('placeholderForm');
@@ -237,6 +237,7 @@
     } finally {
       progressCard.style.display = 'none';
       mainForm.style.display = 'block';
+      fileNameInput.disabled = true;
     }
   }
 </script>

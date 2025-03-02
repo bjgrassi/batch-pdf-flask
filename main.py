@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, send_file, send_from_directory,jsonify
+from flask import Flask, send_from_directory, render_template, request, send_file, send_from_directory,jsonify
 import re
 import os
 from docxtpl import DocxTemplate
@@ -8,10 +8,13 @@ import zipfile
 import pandas as pd
 
 from utils.doc_to_html  import docx_to_html 
+import glob
 
 app = Flask(__name__)
 app.config['UPLOAD_FOLDER'] = 'uploads'
+app.config['STATIC_FOLDER'] = 'uploads/static'
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
+os.makedirs(app.config['STATIC_FOLDER'], exist_ok=True)
 
 file_path = ''
 
@@ -122,8 +125,9 @@ def dashboard():
         wordFile = request.files['wordFile']
         if wordFile and wordFile.filename.endswith('.docx'):
             global file_path
-            file_path = os.path.join(app.config['UPLOAD_FOLDER'], wordFile.filename)
+            file_path = os.path.join(app.config['STATIC_FOLDER'], wordFile.filename)
             wordFile.save(file_path)
+            
             placeholders = extract_placeholders_from_docx(file_path)
             if request.form['radioButton'] == 'manually':
                 batch_quantity = int(request.form.get('batchQuantity', 1))
@@ -135,7 +139,7 @@ def dashboard():
             else:
                 excelFile = request.files['excelFile']
                 if excelFile and (excelFile.filename.endswith('.xlsx') or excelFile.filename.endswith('.csv')):
-                    excel_path = os.path.join(app.config['UPLOAD_FOLDER'], excelFile.filename)
+                    excel_path = os.path.join(app.config['STATIC_FOLDER'], excelFile.filename)
                     excelFile.save(excel_path)
                     df = pd.read_excel(excel_path) if excelFile.filename.endswith('.xlsx') else pd.read_csv(excel_path)
                     excel_array = df.to_dict(orient='records')
@@ -218,19 +222,28 @@ def transform_file():
         # Uninitialize the COM library
         pythoncom.CoUninitialize()
 
-        # Clean up temporary files
-        for index in range(len(form_data_array)):
-            temp_docx = os.path.join(app.config['UPLOAD_FOLDER'], f"{dynamic_file_name}.docx")
-            if os.path.exists(temp_docx):
-                os.remove(temp_docx)  # Delete the .docx
+        # Construct the path pattern for .docx and .pdf files
+        docx_files = glob.glob(os.path.join(app.config['UPLOAD_FOLDER'], '*.docx'))
+        pdf_files = glob.glob(os.path.join(app.config['UPLOAD_FOLDER'], '*.pdf'))
 
-            temp_pdf = os.path.join(app.config['UPLOAD_FOLDER'], f"{dynamic_file_name}.pdf")
-            if os.path.exists(temp_pdf):
-                os.remove(temp_pdf)  # Delete the .pdf
+        # Delete all .docx files
+        for docx_file in docx_files:
+            try:
+                os.remove(docx_file)
+                print(f"Deleted: {docx_file}")
+            except Exception as e:
+                print(f"Error deleting {docx_file}: {e}")
 
-        # # Delete the ZIP file after sending it (optional)
-        # if os.path.exists(zipfile_name):
-        #     os.remove(zipfile_name)
+        # Delete all .pdf files
+        for pdf_file in pdf_files:
+            try:
+                os.remove(pdf_file)
+                print(f"Deleted: {pdf_file}")
+            except Exception as e:
+                print(f"Error deleting {pdf_file}: {e}")
+
+        # Delete the XLSX or CSV file after sending it (optional)
+        # Delete the ZIP file after sending it (optional)
 
 if __name__ == "__main__":
     app.run(debug=True)
