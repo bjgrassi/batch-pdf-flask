@@ -56,7 +56,7 @@ def generate_pdf_preview(doc_path, json_data):
             doc.render(json_data)
 
         # Save to a temporary .docx file
-        temp_docx = os.path.join(current_app.config['UPLOAD_FOLDER'], "preview.docx")
+        temp_docx = os.path.join(current_app.config['UPLOAD_FOLDER'], "transformed.docx")
         doc.save(temp_docx)
 
         doc = None
@@ -188,14 +188,14 @@ def transform_file():
             pdf_files.append(output_pdf)
 
         # Create a ZIP file and add all PDFs to it
-        zipfile_name = os.path.join(current_app.config['UPLOAD_FOLDER'], f"{file_name_pattern}.zip")
-        with zipfile.ZipFile(zipfile_name, "w") as myzip:
+        zipfile_path = os.path.join(current_app.config['UPLOAD_FOLDER'], f"{file_name_pattern}.zip")
+        with zipfile.ZipFile(zipfile_path, "w") as myzip:
             for pdf_file in pdf_files:
                 # Add each PDF file to the ZIP archive
                 myzip.write(pdf_file, os.path.basename(pdf_file))
 
         # Send the ZIP file as a response
-        return send_file(zipfile_name, mimetype='application/zip', as_attachment=True, download_name=f"{file_name_pattern}.zip")
+        return send_file(zipfile_path, mimetype='application/zip', as_attachment=True, download_name=f"{file_name_pattern}.zip")
 
     except Exception as e:
         print(f"Error in transform_file: {e}")
