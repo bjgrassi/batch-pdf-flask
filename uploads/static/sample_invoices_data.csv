@@ -1,6 +1,0 @@
-first_name,last_name,address,city,state,country,zipcode,des1,hours1,rate1,amount1,des2,hours2,rate2,amount2,des3,hours3,rate3,amount3,des4,hours4,rate4,amount4,des5,hours5,rate5,amount5,total,days
-John,Doe,123 Main Street,Toronto,ON,Canada,M1X 2Y3,Web Development,10,50,500,Graphic Design,5,40,200,SEO Optimization,8,45,360,Content Writing,6,30,180,Maintenance,4,35,140,1380,30
-Jane,Smith,456 Oak Avenue,Ottawa,ON,Canada,K2P 1W1,Consulting,15,60,900,Design,10,50,500,Development,12,55,660,Support,8,40,320,Training,6,45,270,2650,45
-Michael,Brown,789 Pine Road,London,ON,Canada,N5V 4B3,Research,10,55,550,Design,7,50,350,SEO Optimization,6,45,270,Development,8,60,480,Testing,5,40,200,1850,30
-Sarah,Johnson,321 Birch Lane,Mississauga,ON,Canada,L5B 3M3,Writing,12,40,480,Consulting,10,55,550,Training,8,45,360,Development,6,50,300,SEO Optimization,7,45,315,2005,60
-David,Lee,654 Cedar Blvd,Calgary,AB,Canada,T2P 2B5,SEO Optimization,14,50,700,Web Development,9,60,540,Content Writing,11,35,385,Design,8,45,360,Support,5,40,200,2185,30

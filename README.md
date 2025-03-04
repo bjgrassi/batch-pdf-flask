@@ -28,3 +28,16 @@ Every change you do in the code, reload the browser.
 
 ## If you added a new library, save on the requirements.txt:
 `pip3 freeze > requirements.txt`
+
+# New
+On Windows (Command Prompt):
+```
+(.venv) PS C:\Projetos\batch-pdf-flask> set FLASK_APP=app:create_app
+(.venv) PS C:\Projetos\batch-pdf-flask> flask run --debug
+```
+
+On Windows (PowerShell):
+```
+$env:FLASK_APP = "app:create_app"
+flask run --debug
+```
