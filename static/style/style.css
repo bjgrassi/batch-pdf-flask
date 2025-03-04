@@ -5,10 +5,11 @@
   --sidebar-color: #f8f9fa;
 }
 
-html, body { 
-  height: 100%; /* Full height */ 
-  margin: 0;    /* Remove default margin */ 
-  padding: 0;   /* Remove default padding */ 
+html,
+body {
+  height: 100%; /* Full height */
+  margin: 0; /* Remove default margin */
+  padding: 0; /* Remove default padding */
 }
 
 .fix-height {
@@ -41,4 +42,8 @@ html, body {
 
 .min-height {
   min-height: min-content;
+}
+.form-instance {
+  height: 300px;
+  overflow-y: auto;
 }

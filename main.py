@@ -1,4 +1,4 @@
-from flask import Flask, send_from_directory, render_template, request, send_file
+from flask import Flask, send_from_directory, render_template, request, send_file, send_from_directory,jsonify
 import re
 import os
 from docxtpl import DocxTemplate
@@ -6,6 +6,7 @@ from docx2pdf import convert
 import pythoncom
 import zipfile
 import pandas as pd
+
 import glob
 
 app = Flask(__name__)
@@ -16,6 +17,9 @@ os.makedirs(app.config['STATIC_FOLDER'], exist_ok=True)
 
 file_path = ''
 
+@app.route('/uploads/<filename>')
+def get_uploaded_file(filename):
+    return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
 # Extract placeholders like {{first_name}} from a .docx file.
 def extract_placeholders_from_docx(doc_path):
     try:
@@ -27,32 +31,86 @@ def extract_placeholders_from_docx(doc_path):
         for para in docx_obj.paragraphs:
             matches = re.findall(r"{{(.*?)}}", para.text)
             placeholders.update(matches)
-    
+
+        for table in docx_obj.tables:
+            for row in table.rows:
+                for cell in row.cells:
+                    matches = re.findall(r"{{(.*?)}}", cell.text)
+                    placeholders.update(matches)
+
     except Exception as e:
         print(f"Error loading document: {e}")
     
     return list(placeholders)
 
-@app.route('/uploads/temp/<filename>')
-def get_uploaded_file(filename):
-    return send_from_directory(app.config['STATIC_FOLDER'], filename)
 
-def convert_temp_docx_to_pdf(temp_pdf_output):
-    temp_pdf = os.path.join(app.config['STATIC_FOLDER'], temp_pdf_output)
-    
+def generate_pdf_preview(doc_path, json_data):
     try:
-        # Ensure pythoncom is initialized
+        # Initialize COM library
         pythoncom.CoInitialize()
-        
-        # Convert the DOCX to PDF
-        convert(file_path, temp_pdf)
-        print(f"PDF conversion successful: {temp_pdf}")
-        
-        # Uninitialize pythoncom after conversion
-        pythoncom.CoUninitialize()
+
+        # Load the .docx template
+        doc = DocxTemplate(doc_path)
+        print('print')
+
+        # Render the document with JSON data
+        if len(json_data)>0:
+            doc.render(json_data)
+            print("skip")
+
+        # Save to a temporary .docx file
+        temp_docx = os.path.join("uploads", "preview.docx")
+        doc.save(temp_docx)
+
+        doc = None
+
+        # Convert the temporary .docx file to PDF
+        temp_pdf = os.path.join("uploads", "output.pdf")
+        convert(temp_docx, temp_pdf, keep_active=True)
+
+        # Clean up the temporary .docx file
+        if os.path.exists(temp_docx):
+            os.remove(temp_docx)
+
+        # Return the path to the generated PDF file
+        return temp_pdf
+
     except Exception as e:
-        print(f"Error during PDF conversion: {e}")
-        return f"Error during PDF conversion: {e}", 500
+        # If there's an error, return an error message
+        return f"Error generating PDF preview: {str(e)}"
+
+    finally:
+        # Uninitialize COM library
+        pythoncom.CoUninitialize()
+
+
+@app.route("/generate-pdf-preview", methods=['POST'])
+def generate_pdf_for_current_index():
+    try:
+        data = request.get_json()  # Get data from the frontend
+        index = data.get("index")
+        form_data = data.get("formData")
+        print(form_data)
+
+        if not form_data:
+            return jsonify({"error": "No form data provided"}), 400
+
+
+        cleaned_data = {}
+        for key, value in form_data.items():
+            # Remove the numeric prefix (e.g., "2_rate3" → "rate3")
+            new_key = "_".join(key.split("_")[1:])  # Remove first part (index)
+            cleaned_data[new_key] = value
+
+        print(cleaned_data)
+
+
+        generate_pdf_preview(file_path, cleaned_data)
+
+        return jsonify({"message": "PDF generated successfully", "pdf_path": f"/uploads/preview_{index}.pdf"})
+
+    except Exception as e:
+        return jsonify({"error": f"Failed to generate PDF: {str(e)}"}), 500
 
 @app.route("/", methods=['GET', 'POST'])
 def home_page():
@@ -70,14 +128,12 @@ def dashboard():
             wordFile.save(file_path)
             
             placeholders = extract_placeholders_from_docx(file_path)
-            temp_pdf_output = "output.pdf"
-            convert_temp_docx_to_pdf(temp_pdf_output)
-
             if request.form['radioButton'] == 'manually':
                 batch_quantity = int(request.form.get('batchQuantity', 1))
+                generate_pdf_preview(file_path,{})
                 return render_template(
                     'dashboard.html', placeholders=placeholders, file_name=wordFile.filename,
-                    batch_quantity=batch_quantity, pdf_content=get_uploaded_file(temp_pdf_output)
+                    batch_quantity=batch_quantity
                 )
             else:
                 excelFile = request.files['excelFile']
@@ -86,9 +142,11 @@ def dashboard():
                     excelFile.save(excel_path)
                     df = pd.read_excel(excel_path) if excelFile.filename.endswith('.xlsx') else pd.read_csv(excel_path)
                     excel_array = df.to_dict(orient='records')
+                    pdf_content_pre = generate_pdf_preview(file_path, excel_array[0])
+                    print('pdf')
                     return render_template(
                         'dashboard.html', placeholders=placeholders, file_name=wordFile.filename,
-                        batch_quantity=len(df), pdf_content=get_uploaded_file(temp_pdf_output), excel_array=excel_array
+                        batch_quantity=len(df), excel_array=excel_array
                     )
                 else:
                     return "Invalid Excel file format. Please upload a .xlsx or .csv file.", 400
@@ -101,8 +159,11 @@ def transform_file():
     try:
         # Initialize the COM library
         pythoncom.CoInitialize()
-
+        print('in post')
         data = request.get_json()
+        print(data)
+        print("data")
+
         form_data_array = data['formDataArray']
         file_name_pattern = data['fileName']  # e.g., "first_name-phone"
         print(file_name_pattern)
@@ -113,6 +174,9 @@ def transform_file():
             # Fill the placeholders
             doc = DocxTemplate(file_path)
             doc.render(form_data)
+            print(form_data)
+            print("form_data")
+
 
             # Generate the file name based on the pattern and form data
             file_name_parts = file_name_pattern.split('-')  # Split the pattern into parts
@@ -130,10 +194,14 @@ def transform_file():
             # Save the rendered document temporarily
             temp_docx = os.path.join(app.config['UPLOAD_FOLDER'], f"{dynamic_file_name}.docx")
             doc.save(temp_docx)
+            print("12")
+
 
             # Convert the temporary .docx to PDF
             output_pdf = os.path.join(app.config['UPLOAD_FOLDER'], f"{dynamic_file_name}.pdf")
             convert(temp_docx, output_pdf)
+            print("check13")
+
             pdf_files.append(output_pdf)
 
         # Create a ZIP file and add all PDFs to it
