@@ -4,7 +4,7 @@
   <div class="column is-3-desktop is-12-tablet">
     <div class="card card-border">
       <div class="card-content">
-        <div id="progressCard">
+        <div id="progressCard" style="display: none;">
           <p class="subtitle is-5">Transforming into PDFs and ziping files</span></b></p>
           <progress id="progress" class="progress is-small is-info" max="100">50%</progress>
         </div>
@@ -92,7 +92,6 @@
   const totalForms = document.getElementById('placeholderForm').dataset.batchQuantity;
   let progressCard = document.getElementById('progressCard');
   let mainForm = document.getElementById('mainForm');
-  progressCard.style.display = 'none'
   let selectedPlaceholders = [];
   const fileNameInput = document.querySelector('input[name="fileName"]');
 
