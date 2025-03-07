@@ -8,7 +8,7 @@
           <p class="subtitle is-5">Transforming into PDFs and ziping files</span></b></p>
           <progress id="progress" class="progress is-small is-info" max="100">50%</progress>
         </div>
-    
+
         {% if placeholders %}
         <div id="mainForm">
           {% if file_name %}
@@ -18,42 +18,37 @@
           <form id="placeholderForm" data-batch-quantity="{{ batch_quantity | default(1) }}" method="POST"
             action="/post-doc-form">
             {% for i in range(batch_quantity) %}
-            <div id="{{ i }}_form" class="form-instance" {% if i !=0 %}style="display: none;" {% endif %}>
-
-            
+            <div id="{{ i }}_form" {% if i !=0 %}style="display: none;" {% endif %}>
               <p class="subtitle is-3">PDF {{ i + 1 }}:</p>
+      
+              <div class="form-instance">
+                {% for placeholder in placeholders %}
+                <div class="field">
+                  <label class="label">{{ placeholder }}</label>
+                  <div class="control">
+                    <input class="input is-small" type="text" name="{{ i }}_{{ placeholder }}" {% if excel_array
+                      %}value="{{ excel_array[i][placeholder] }}" {% endif %} required>
+                  </div>
+                </div>
+                {% endfor %}
+              </div>
 
               <button
-              type="button"
-              id="previousButton"
-              class="button is-info mt-3"
-              onclick="showSelectedForm('previous')"
-              {% if i ==0 %}disabled{% endif %}>Previous</button>
-            <button
-              type="button"
-              id="nextButton"
-              class="button is-info mt-3"
-              onclick="showSelectedForm('next')"
-              {% if i ==batch_quantity - 1 %}disabled{% endif %}>Next</button>
-    
-              {% for placeholder in placeholders %}
-              <div class="field">
-                <label class="label">{{ placeholder }}</label>
-                <div class="control">
-                  <input class="input is-small"
-                    type="text" 
-                    name="{{ i }}_{{ placeholder }}"
-                    {% if excel_array %}value="{{ excel_array[i][placeholder] }}" {% endif %}
-                    required> 
-                </div>
-              </div>
-              {% endfor %}
-    
-             
+                type="button"
+                id="previousButton"
+                class="button is-info mt-3"
+                onclick="showSelectedForm('previous')"
+                {% if i ==0 %}disabled{% endif %}>Previous</button>
+              <button
+                type="button"
+                id="nextButton"
+                class="button is-info mt-3"
+                onclick="showSelectedForm('next')"
+                {% if i ==batch_quantity - 1 %}disabled{% endif %}>Next</button>
             </div>
             {% endfor %}
-    
-            <div class="field mt-3">
+
+            <div class="field mt-4">
               <label class="label">Choose the file name pattern</label>
               <div class="checkboxes mt-2">
                 {% for placeholder in placeholders %}
@@ -72,7 +67,7 @@
             </div>
           </form>
     
-          <button type="button" id="submitButton" class="button is-info mt-3" onclick="saveFile(this)">Save File</button>
+          <button type="button" id="submitButton" class="button is-info mt-3" onclick="saveFile(this)">Zip Files</button>
         </div>
         {% else %}
         <p>No placeholders found in the document.</p>
@@ -101,9 +96,55 @@
   let selectedPlaceholders = [];
   const fileNameInput = document.querySelector('input[name="fileName"]');
 
+  // Object to store previous values of input fields
+  const previousValues = {};
+
+  // Add event listeners to all input fields
+  document.querySelectorAll('#placeholderForm input').forEach(input => {
+    // Store the initial value of each input field
+    previousValues[input.name] = input.value;
+
+    // Add input event listener to track changes
+    input.addEventListener('input', checkFormCompletion);
+
+    // Add blur event listener to check for changes and reload PDF preview
+    input.addEventListener('blur', (event) => {
+      const inputField = event.target;
+      const inputName = inputField.name;
+
+      // Check if the value has changed
+      if (inputField.value !== previousValues[inputName]) {
+        // Update the previous value
+        previousValues[inputName] = inputField.value;
+
+        // Reload the PDF preview only if the value has changed
+        sendFormDataToBackend(currentFormIndex);
+      }
+    });
+  });
+
+  // Function to check if all placeholders are filled
+  function checkFormCompletion() {
+    const inputs = document.querySelectorAll('#placeholderForm input[type="text"]');
+    let allFilled = true;
+
+    inputs.forEach(input => {
+      if (!input.value.trim()) {
+        allFilled = false;
+      }
+    });
+
+    // Enable or disable the "Save File" button based on the check
+    const saveButton = document.getElementById('submitButton');
+    saveButton.disabled = !allFilled;
+  }
+
+  // Initial check to disable the button if the form is not filled
+  checkFormCompletion();
+
   function selectPlaceholder(placeholder) {
     const checkbox = document.querySelector(`input[value="${placeholder}"]`);
-    
+
     if (checkbox.checked) {
       // Add the placeholder to the list if checked
       if (!selectedPlaceholders.includes(placeholder)) {
@@ -127,10 +168,12 @@
       } else {
         currentFormIndex--;
       }
-      
+
       document.getElementById(`${currentFormIndex}_form`).style.display = 'block';
       sendFormDataToBackend(currentFormIndex);
 
+      // Check form completion after changing the form
+      checkFormCompletion();
     }
   }
 

@@ -44,6 +44,6 @@ body {
   min-height: min-content;
 }
 .form-instance {
-  height: 300px;
+  height: 35vh;
   overflow-y: auto;
 }

@@ -53,7 +53,16 @@ def generate_pdf_preview(doc_path, json_data):
 
         # Render the document with JSON data
         if len(json_data) > 0:
-            doc.render(json_data)
+            # Create a copy of the JSON data to avoid modifying the original
+            rendered_data = json_data.copy()
+
+            # Iterate through the placeholders and check if they are empty
+            for key, value in rendered_data.items():
+                if not value:  # If the value is empty, keep the placeholder
+                    rendered_data[key] = f"{{{{{key}}}}}"  # Reinsert the placeholder
+
+            # Render the document with the modified data
+            doc.render(rendered_data)
 
         # Save to a temporary .docx file
         temp_docx = os.path.join(current_app.config['UPLOAD_FOLDER'], "transformed.docx")
