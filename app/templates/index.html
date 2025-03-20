@@ -119,6 +119,121 @@
   const batchQuantity = document.getElementById("batchQuantity");
   const uploadButton = document.getElementById("uploadDocument");
   const errorMessage = document.getElementById("errorMessage");
+  const manuallyView = document.getElementById("manuallyView");
+  const excelView = document.getElementById("excelView");
+
+  // Function to check if the form is completed
+  function checkFormCompletion() {
+    const wordFileValid = wordFile.files.length > 0;
+    const excelFileValid = excelFile.files.length > 0;
+    const batchQuantityValid = batchQuantity.value.trim() !== "";
+
+    // Enable the upload button only if the form is completed
+    if ((wordFileValid && excelFileValid) || (wordFileValid && batchQuantityValid)) {
+      uploadButton.disabled = false;
+      errorMessage.classList.add("is-hidden");
+    } else {
+      uploadButton.disabled = true;
+    }
+  }
+
+  // Event listeners for input changes
+  wordFile.addEventListener("change", checkFormCompletion);
+  excelFile.addEventListener("change", checkFormCompletion);
+  batchQuantity.addEventListener("input", checkFormCompletion);
+
+  // Prevent non-integer input in batchQuantity
+  batchQuantity.addEventListener("keydown", function (event) {
+    // Allow: backspace, delete, tab, escape, enter, and arrow keys
+    if (
+      [46, 8, 9, 27, 13, 110].includes(event.keyCode) ||
+      (event.keyCode === 65 && event.ctrlKey === true) || // Ctrl+A
+      (event.keyCode === 67 && event.ctrlKey === true) || // Ctrl+C
+      (event.keyCode === 86 && event.ctrlKey === true) || // Ctrl+V
+      (event.keyCode === 88 && event.ctrlKey === true) || // Ctrl+X
+      (event.keyCode >= 35 && event.keyCode <= 39) // Home, End, Left, Right
+    ) {
+      return; // Allow these keys
+    }
+
+    // Ensure that it is a number and stop the keypress if not
+    if (
+      (event.shiftKey || (event.keyCode < 48 || event.keyCode > 57)) &&
+      (event.keyCode < 96 || event.keyCode > 105)
+    ) {
+      event.preventDefault();
+    }
+  });
+
+  // Clean up any invalid input (e.g., pasted values)
+  batchQuantity.addEventListener("input", function (event) {
+    const value = event.target.value;
+    // Use a regular expression to allow only integers
+    if (!/^\d*$/.test(value)) {
+      // If the input is not an integer, clear it
+      event.target.value = value.replace(/[^\d]/g, "");
+    }
+  });
+
+  // Function to handle radio button change
+  function showSelectedView(idShow, idRemove) {
+    document.getElementById(idShow).style.display = "block";
+    document.getElementById(idRemove).style.display = "none";
+    document.getElementById("uploadColumn").style.display = "block";
+
+    // Clear the input values when the radio option changes
+    if (idShow === "manuallyView") {
+      excelFile.value = ""; // Clear the Excel file input
+      document.getElementById("messageExcel").innerHTML = "Drag and drop your Excel file here or <b><span class='has-text-black-bis'>click to select one</span></b>";
+    } else if (idShow === "excelView") {
+      batchQuantity.value = ""; // Clear the batch quantity input
+    }
+
+    // Re-check form completion after clearing inputs
+    checkFormCompletion();
+  }
+
+  // Function to allow only DOC file input
+  function handleWordFileUpload(input) {
+    let message = document.getElementById("messageWord");
+
+    if (input.files && input.files[0]) {
+      const fileName = input.files[0].name;
+      const fileExtension = fileName.split(".").pop().toLowerCase();
+
+      if (fileExtension === "doc" || fileExtension === "docx") {
+        message.innerHTML = `File <b><span class="has-text-black-bis">${fileName}</span></b> uploaded successfully!`;
+      } else {
+        message.innerHTML = `❌ Invalid file type. Please upload a valid Word (.doc or .docx) file.`;
+        input.value = "";
+      }
+    }
+
+    // Re-check form completion after file upload
+    checkFormCompletion();
+  }
+
+  // Function to allow only CSV/XLSX input
+  function handleExcelFileUpload(input) {
+    let message = document.getElementById("messageExcel");
+
+    if (input.files && input.files[0]) {
+      const fileName = input.files[0].name;
+      const fileExtension = fileName.split(".").pop().toLowerCase();
+
+      if (fileExtension === "xlsx" || fileExtension === "csv") {
+        message.innerHTML = `File <b><span class="has-text-black-bis">${fileName}</span></b> uploaded successfully!`;
+      } else {
+        message.innerHTML = `❌ Invalid file type. Please upload a valid Excel (.xlsx or .csv) file.`;
+      }
+    }
+
+    // Re-check form completion after file upload
+    checkFormCompletion();
+  }
+
+  // Initial check to disable the upload button
+  checkFormCompletion();
 
   //FUNCTION TO CHECK IF FORM SHOULD BE SUBMITTED OR NOT BASED ON THE INPUT VALUES
   document.querySelector("form").addEventListener("submit", function (event) {
@@ -145,45 +260,5 @@
 
     return;
   });
-
-  //FUNTION TO ALLOW ONLY DOC FILE INPUT
-  function handleWordFileUpload(input) {
-    let message = document.getElementById("messageWord");
-
-    if (input.files && input.files[0]) {
-      const fileName = input.files[0].name;
-      const fileExtension = fileName.split(".").pop().toLowerCase();
-
-      if (fileExtension === "doc" || fileExtension === "docx") {
-        message.innerHTML = `File <b><span class="has-text-black-bis">${fileName}</span></b> uploaded successfully!`;
-      } else {
-        message.innerHTML = `❌ Invalid file type. Please upload a valid Word (.doc or .docx) file.`;
-        input.value = "";
-      }
-    }
-  }
-
-  //FUNCTION TO ALLOW ONLY CSV/XLSX INPUT
-  function handleExcelFileUpload(input) {
-    let message = document.getElementById("messageExcel");
-
-    if (input.files && input.files[0]) {
-      const fileName = input.files[0].name;
-      const fileExtension = fileName.split(".").pop().toLowerCase();
-
-      if (fileExtension === "xlsx" || fileExtension === "csv") {
-        message.innerHTML = `File <b><span class="has-text-black-bis">${fileName}</span></b> uploaded successfully!`;
-      } else {
-        message.innerHTML = `❌ Invalid file type. Please upload a valid Excel (.xlsx or .csv) file.`;
-      }
-    }
-  }
-
-  //TOGGLE VIEW
-  function showSelectedView(idShow, idRemove) {
-    document.getElementById(idShow).style.display = "block";
-    document.getElementById(idRemove).style.display = "none";
-    document.getElementById("uploadColumn").style.display = "block";
-  }
 </script>
 {% endblock %}
