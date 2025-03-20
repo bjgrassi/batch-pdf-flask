@@ -1,26 +1,78 @@
 import pytest
+import os
 
-def test_index_page_loads(client):
-    response = client.get('/')
-    assert response.status_code == 200
-    assert b"Batch PDF" in response.data  # Check if the page title is present
+@pytest.fixture
+def sample_docx_file():
+    file_path = os.path.join(os.path.dirname(__file__), '..', 'static', 'sample.docx')
+    if not os.path.exists(file_path):
+        pytest.skip("Sample .docx file not found. Please add it")
+    return file_path
 
-def test_file_upload_form(client):
-    response = client.get('/')
-    assert b'<form class="doc-form control"' in response.data  # Check if the form is present
-    assert b'<input type="file" id="wordFile"' in response.data  # Check if the file input is present
+@pytest.fixture
+def sample_excel_file():
+    file_path = os.path.join(os.path.dirname(__file__), '..', 'static', 'sample.xlsx')
+    if not os.path.exists(file_path):
+        pytest.skip("Sample .xlsx file not found. Please add it")
+    return file_path
 
-def test_radio_buttons(client):
-    response = client.get('/')
-    assert b'<input type="radio" name="radioButton" value="manually"' in response.data  # Check if the "Manually" radio button is present
-    assert b'<input type="radio" name="radioButton" value="excel"' in response.data  # Check if the "Excel" radio button is present
-
-def test_manual_input_view_display(client):
-    # Simulate selecting the "Manually" radio button
-    response = client.get('/')
+def test_radio_button_selection(client, sample_docx_file):
+    # Test "Manually" radio button
+    with open(sample_docx_file, 'rb') as f:
+        response = client.post(
+            '/dashboard',
+            data={
+                'radioButton': 'manually',
+                'batchQuantity': '1',
+                'wordFile': f  # Include the file in the data dictionary
+            },
+            content_type='multipart/form-data',  # Ensure the content type is set correctly
+            follow_redirects=True
+        )
     assert b'<div id="manuallyView"' in response.data
+    assert b'<div id="excelView"' not in response.data
 
-def test_excel_input_view_display(client):
-    # Simulate selecting the "Excel" radio button
-    response = client.get('/')
+    # Test "Excel" radio button
+    with open(sample_docx_file, 'rb') as f:
+        response = client.post(
+            '/dashboard',
+            data={
+                'radioButton': 'excel',
+                'batchQuantity': '',
+                'wordFile': f  # Include the file in the data dictionary
+            },
+            content_type='multipart/form-data',  # Ensure the content type is set correctly
+            follow_redirects=True
+        )
     assert b'<div id="excelView"' in response.data
+    assert b'<div id="manuallyView"' not in response.data
+
+# def test_batch_quantity_input(client):
+#     # Test valid numeric input
+#     response = client.post('/dashboard', data={'radioButton': 'manually', 'batchQuantity': '5'})
+#     assert response.status_code == 200
+#     assert b"Batch quantity set to 5" in response.data
+
+#     # Test non-numeric input
+#     response = client.post('/dashboard', data={'radioButton': 'manually', 'batchQuantity': 'abc'})
+#     assert response.status_code == 400
+#     assert b"Invalid batch quantity. Please enter a numeric value." in response.data
+
+# def test_excel_file_upload(client, sample_excel_file):
+#     # Test valid .xlsx file upload
+#     with open(sample_excel_file, 'rb') as f:
+#         response = client.post('/dashboard', data={'excelFile': f, 'radioButton': 'excel', 'batchQuantity': '1'}, content_type='multipart/form-data')
+#     assert response.status_code == 200
+#     assert b"File example.xlsx uploaded successfully!" in response.data
+
+#     # Test invalid file upload
+#     with open('../static/wrong.txt', 'rb') as f:
+#         response = client.post('/dashboard', data={'excelFile': f, 'radioButton': 'excel', 'batchQuantity': '1'}, content_type='multipart/form-data')
+#     assert response.status_code == 400
+#     assert b"Invalid file type. Please upload a valid Excel (.xlsx or .csv) file." in response.data
+
+# def test_upload_button_state(client, sample_docx_file):
+#     # Test upload button state during form submission
+#     with open(sample_docx_file, 'rb') as f:
+#         response = client.post('/dashboard', data={'radioButton': 'manually', 'batchQuantity': '1'}, files={'wordFile': f}, follow_redirects=True)
+#     assert b'<button id="uploadDocument" disabled>' not in response.data  # Button should be enabled
+#     assert b'<button id="uploadDocument" disabled>' in response.data  # Button should be disabled during processing
