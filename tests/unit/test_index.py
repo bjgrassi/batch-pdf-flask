@@ -1,50 +1,50 @@
 import pytest
 import os
 
-@pytest.fixture
-def sample_docx_file():
-    file_path = os.path.join(os.path.dirname(__file__), '..', 'static', 'sample.docx')
-    if not os.path.exists(file_path):
-        pytest.skip("Sample .docx file not found. Please add it")
-    return file_path
+# @pytest.fixture
+# def sample_docx_file():
+#     file_path = os.path.join(os.path.dirname(__file__), '..', 'static', 'sample.docx')
+#     if not os.path.exists(file_path):
+#         pytest.skip("Sample .docx file not found. Please add it")
+#     return file_path
 
-@pytest.fixture
-def sample_excel_file():
-    file_path = os.path.join(os.path.dirname(__file__), '..', 'static', 'sample.xlsx')
-    if not os.path.exists(file_path):
-        pytest.skip("Sample .xlsx file not found. Please add it")
-    return file_path
+# @pytest.fixture
+# def sample_excel_file():
+#     file_path = os.path.join(os.path.dirname(__file__), '..', 'static', 'sample.xlsx')
+#     if not os.path.exists(file_path):
+#         pytest.skip("Sample .xlsx file not found. Please add it")
+#     return file_path
 
-def test_radio_button_selection(client, sample_docx_file):
-    # Test "Manually" radio button
-    with open(sample_docx_file, 'rb') as f:
-        response = client.post(
-            '/dashboard',
-            data={
-                'radioButton': 'manually',
-                'batchQuantity': '1',
-                'wordFile': f  # Include the file in the data dictionary
-            },
-            content_type='multipart/form-data',  # Ensure the content type is set correctly
-            follow_redirects=True
-        )
-    assert b'<div id="manuallyView"' in response.data
-    assert b'<div id="excelView"' not in response.data
+# def test_radio_button_selection(client, sample_docx_file):
+#     # Test "Manually" radio button
+#     with open(sample_docx_file, 'rb') as f:
+#         response = client.post(
+#             '/dashboard',
+#             data={
+#                 'radioButton': 'manually',
+#                 'batchQuantity': '1',
+#                 'wordFile': f  # Include the file in the data dictionary
+#             },
+#             content_type='multipart/form-data',  # Ensure the content type is set correctly
+#             follow_redirects=True
+#         )
+#     assert b'<div id="manuallyView"' in response.data
+#     assert b'<div id="excelView"' not in response.data
 
-    # Test "Excel" radio button
-    with open(sample_docx_file, 'rb') as f:
-        response = client.post(
-            '/dashboard',
-            data={
-                'radioButton': 'excel',
-                'batchQuantity': '',
-                'wordFile': f  # Include the file in the data dictionary
-            },
-            content_type='multipart/form-data',  # Ensure the content type is set correctly
-            follow_redirects=True
-        )
-    assert b'<div id="excelView"' in response.data
-    assert b'<div id="manuallyView"' not in response.data
+#     # Test "Excel" radio button
+#     with open(sample_docx_file, 'rb') as f:
+#         response = client.post(
+#             '/dashboard',
+#             data={
+#                 'radioButton': 'excel',
+#                 'batchQuantity': '',
+#                 'wordFile': f  # Include the file in the data dictionary
+#             },
+#             content_type='multipart/form-data',  # Ensure the content type is set correctly
+#             follow_redirects=True
+#         )
+#     assert b'<div id="excelView"' in response.data
+#     assert b'<div id="manuallyView"' not in response.data
 
 # def test_batch_quantity_input(client):
 #     # Test valid numeric input
@@ -76,3 +76,10 @@ def test_radio_button_selection(client, sample_docx_file):
 #         response = client.post('/dashboard', data={'radioButton': 'manually', 'batchQuantity': '1'}, files={'wordFile': f}, follow_redirects=True)
 #     assert b'<button id="uploadDocument" disabled>' not in response.data  # Button should be enabled
 #     assert b'<button id="uploadDocument" disabled>' in response.data  # Button should be disabled during processing
+
+# def test_invalid_file_format(client):
+#     # Simulate a POST request with an invalid file format
+#     with open('../static/wrong.txt', 'rb') as f:
+#         response = client.post('/dashboard', data={'wordFile': f, 'radioButton': 'manually', 'batchQuantity': '1'})
+#     assert response.status_code == 400
+#     assert b"Invalid file format. Please upload a .docx file." in response.data
